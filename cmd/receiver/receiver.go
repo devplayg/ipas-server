@@ -3,11 +3,13 @@ package main
 import (
 	"github.com/devplayg/golibs/secureconfig"
 	"github.com/devplayg/ipas-server"
-	log "github.com/sirupsen/logrus"
-	"os"
-	"net/http"
-	"github.com/julienschmidt/httprouter"
 	"github.com/devplayg/ipas-server/receiver"
+	"github.com/julienschmidt/httprouter"
+	log "github.com/sirupsen/logrus"
+	"net/http"
+	"os"
+	"runtime"
+	"time"
 )
 
 const (
@@ -16,12 +18,18 @@ const (
 )
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	// 플래그
 	var (
-		version   = ipasserver.CmdFlags.Bool("version", false, "Version")
-		debug     = ipasserver.CmdFlags.Bool("debug", false, "Debug")
-		cpu       = ipasserver.CmdFlags.Int("cpu", 3, "CPU Count")
-		verbose   = ipasserver.CmdFlags.Bool("v", false, "Verbose")
-		setConfig = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
+		version = ipasserver.CmdFlags.Bool("version", false, "Version")
+		debug   = ipasserver.CmdFlags.Bool("debug", false, "Debug")
+		//cpu             = ipasserver.CmdFlags.Int("cpu", 3, "CPU Count")
+		verbose         = ipasserver.CmdFlags.Bool("v", false, "Verbose")
+		setConfig       = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
+		batchSize       = ipasserver.CmdFlags.Int("batchsize", 4, "Batch size")
+		batchTimeout    = ipasserver.CmdFlags.Int("batchtime", 5000, "Batch timeout, in milliseconds")
+		batchMaxPending = ipasserver.CmdFlags.Int("maxpending", 4, "Maximum pending events")
 		//interval  = ipasserver.CmdFlags.Int64("i", 5000, "Interval(ms)")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
@@ -34,14 +42,13 @@ func main() {
 	}
 
 	// 엔진 설정
-	engine := ipasserver.NewEngine(AppName, *debug, *cpu, *verbose)
+	engine := ipasserver.NewEngine(AppName, *debug, *verbose)
 	if *setConfig {
 		secureconfig.SetConfig(
 			engine.ConfigPath,
 			"db.hostname, db.port, db.username, db.password, db.database",
 			ipasserver.GetEncryptionKey(),
 		)
-
 		return
 	}
 
@@ -52,13 +59,47 @@ func main() {
 	}
 	log.Debug(engine.Config)
 
+	// 처리기 시작
+	timeout := time.Duration(*batchTimeout) * time.Millisecond
+	dispatcher := receiver.NewDispatcher(*batchSize, timeout, *batchMaxPending)
+	errChan := make(chan error)
+	if err := dispatcher.Start(errChan); err != nil {
+		log.Fatalf("failed to start indexing batcher: %s", err.Error())
+	}
+	log.Printf("batching configured with size %d, timeout %s, max pending %d",
+		*batchSize, timeout, *batchMaxPending)
+
+
 	// 라우터 시작
 	router := httprouter.New()
-	receiver.NewEventReceiver(engine, router)
-	receiver.NewStatusReceiver(engine, router)
-	log.Fatal(http.ListenAndServe(":8080", router))
+	if err := startRouters(router, dispatcher); err != nil {
+		log.Fatalf("failed to start routers: %s")
+	}
+
+
+	go drainLog("error batch", errChan)
 
 	// Wait for signal
 	ipasserver.WaitForSignals()
+}
 
+
+func drainLog(msg string, errChan <-chan error) {
+	for {
+		select {
+		case err := <-errChan:
+			if err != nil {
+				log.Errorf("%s: %s", msg, err.Error())
+			}
+		}
+	}
+}
+
+func startRouters(router *httprouter.Router, dispatcher *receiver.Dispatcher) error {
+	r1 := receiver.NewEventReceiver(router)       // 로그 수신기
+	r1.Start(dispatcher.C())
+	r2 := receiver.NewStatusReceiver(router)      // 상태정보 수신기
+	r2.Start(dispatcher.C())
+	log.Fatal(http.ListenAndServe(":8080", router)) // 웹서버 시작
+	return nil
 }

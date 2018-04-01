@@ -44,11 +44,10 @@ type Engine struct {
 	logOutput   int // 0: STDOUT, 1: File
 }
 
-func NewEngine(appName string, debug bool, cpuCount int, verbose bool) *Engine {
+func NewEngine(appName string, debug bool, verbose bool) *Engine {
 	e := Engine{
 		appName:     appName,
 		processName: GetProcessName(),
-		cpuCount:    cpuCount,
 		debug:       debug,
 	}
 	e.ConfigPath = filepath.Join(filepath.Dir(os.Args[0]), e.processName+".enc")
@@ -73,7 +72,6 @@ func (e *Engine) Start() error {
 	}
 
 	log.Debug("Engine started")
-	runtime.GOMAXPROCS(e.cpuCount)
 	log.Debugf("GOMAXPROCS set to %d", runtime.GOMAXPROCS(0))
 	return nil
 }
