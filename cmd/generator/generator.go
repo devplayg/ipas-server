@@ -4,11 +4,17 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"github.com/icrowley/fake"
+	"strconv"
 )
 
 const (
 	DefaultDateFormat = "2006-01-02 15:04:05"
 )
+
+func float32ToString(f32 float32) string {
+	return strconv.FormatFloat(float64(f32), 'f', 6, 64)
+}
 
 func main() {
 	t := time.Now()
@@ -16,27 +22,55 @@ func main() {
 	// Status
 	values := url.Values{
 		"dt":    {t.Format(DefaultDateFormat)},
-		"srcid": {"VT-SAMPLE"},
-		"lat":   {"126.886633"},
-		"lon":   {"38.1488088"},
-		"spd":   {"34.1"},
+		"srcid": {randTag(fake.CharactersN(2))},
+		"lat":   { float32ToString(fake.Latitude())},
+		"lon":   { float32ToString(fake.Longitude())},
+		"spd":   {fake.DigitsN(2)},
+		"snr":   {fake.DigitsN(1)},
+		"ctn":   {fake.Phone()},
 	}
-	u := "http://127.0.0.1:8080/status?" + values.Encode()
-	_, err := http.Get(u)
+	_, err := http.PostForm("http://127.0.0.1:8080/status", values)
 	if err != nil {
 		panic(err)
 	}
 
 	// Event
 	values = url.Values{
-		"dt":      {t.Format(DefaultDateFormat)},
-		"target":  {"PT-SAMPLE,ZT-SAMPLE"},
-		"wardist": {"1"},
-		"caudist": {"3"},
-		"v2vdist": {"5"},
+		"dt":    {t.Format(DefaultDateFormat)},
+		"srcid": {randTag(fake.CharactersN(2))},
+		"dstid": {randTag(fake.CharactersN(2))+","+randTag(fake.CharactersN(2))},
+		"lat":   { float32ToString(fake.Latitude())},
+		"lon":   { float32ToString(fake.Longitude())},
+		"spd":   {fake.DigitsN(2)},
+		"snr":   {fake.DigitsN(1)},
+		"ctn":   {fake.Phone()},
+		"type":  {strconv.Itoa(fake.Year(1,2))},
+		"dist":  {fake.DigitsN(1)},
 	}
+
+
 	_, err = http.PostForm("http://127.0.0.1:8080/event", values)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func randTag(name string) string {
+	tagType := NumberRange(1, 3)
+	prefix := ""
+
+	if tagType == 1 {
+		prefix = "VT_"
+	} else if tagType == 2 {
+		prefix = "ZT_"
+	} else if tagType == 3 {
+		prefix = "PT_"
+	}
+	prefix += name + "_"
+	//prefix += idPools[NumberRange(0, len(idPools)-1)].(string)
+	return prefix + fake.DigitsN(2)
+}
+
+func NumberRange(from, to int) int {
+	return fake.Year(from-1, to)
 }

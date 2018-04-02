@@ -2,7 +2,6 @@ package ipasserver
 
 import (
 	"crypto/sha256"
-	"errors"
 	"flag"
 	"fmt"
 	"github.com/astaxie/beego/orm"
@@ -41,6 +40,7 @@ type Engine struct {
 	debug       bool
 	cpuCount    int
 	processName string
+	ProcessDir  string
 	logOutput   int // 0: STDOUT, 1: File
 }
 
@@ -50,29 +50,49 @@ func NewEngine(appName string, debug bool, verbose bool) *Engine {
 		processName: GetProcessName(),
 		debug:       debug,
 	}
-	e.ConfigPath = filepath.Join(filepath.Dir(os.Args[0]), e.processName+".enc")
+	abs, _ := filepath.Abs(os.Args[0])
+	e.ProcessDir = filepath.Dir(abs)
+	e.ConfigPath = filepath.Join(e.ProcessDir, "conf", "config.enc")
 	e.initLogger(verbose)
 	return &e
+}
+
+func (e *Engine) checkSubDir(subDir string) error {
+	dir := filepath.Join(e.ProcessDir, subDir)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err := os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (e *Engine) Start() error {
 	var err error
 
+	// 필수 디렉토리 생성
+	if err := e.checkSubDir("conf"); err != nil {
+		return err
+	}
+	if err := e.checkSubDir("data"); err != nil {
+		return err
+	}
+	if err := e.checkSubDir("logs"); err != nil {
+		return err
+	}
+
+	// 설정파일 읽기
 	e.Config, err = secureconfig.GetConfig(e.ConfigPath, GetEncryptionKey())
 	if err != nil {
 		return err
 	}
-	if _, ok := e.Config["db.hostname"]; !ok {
-		return errors.New("invalid configurations")
-	}
-
 	err = e.initDatabase()
 	if err != nil {
 		return err
 	}
-
-	log.Debug("Engine started")
-	log.Debugf("GOMAXPROCS set to %d", runtime.GOMAXPROCS(0))
+	log.Infof("Engine started. GOMAXPROCS set to %d", runtime.GOMAXPROCS(0))
 	return nil
 }
 
@@ -96,11 +116,11 @@ func (e *Engine) initLogger(verbose bool) error {
 	} else {
 		var logFile string
 		if e.debug {
-			logFile = filepath.Join(filepath.Dir(os.Args[0]), e.processName+"-debug.log")
+			logFile = filepath.Join(e.ProcessDir, "logs", e.processName+"-debug.log")
 			os.Remove(logFile)
 
 		} else {
-			logFile = filepath.Join(filepath.Dir(os.Args[0]), e.processName+".log")
+			logFile = filepath.Join(e.ProcessDir, "logs", e.processName+".log")
 		}
 
 		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
@@ -141,7 +161,7 @@ func WaitForSignals() {
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
 	select {
 	case <-signalCh:
-		log.Println("Signal received, shutting down...")
+		log.Info("Signal received, shutting down...")
 	}
 }
 
