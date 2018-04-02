@@ -42,13 +42,14 @@ func (d *Dispatcher) Start(errChan chan<- error) error {
 		timer.Stop() // Stop any first firing.
 
 		save := func() {
-			stats.Add("eventsIndexed", int64(len(batch)))
+			//stats.Add("eventsIndexed", int64(len(batch)))
 
 			// 임시 파일 생성
-			tmpFile, err := ioutil.TempFile("", "")
+			tmpFile, err := ioutil.TempFile(filepath.Join(d.engine.ProcessDir, "tmp"), "")
 			if err != nil {
 				errChan <- err
 			}
+			log.Debug(tmpFile.Name())
 			//defer os.Remove(tmpFile.Name())
 
 			// 파일 분류 및 저장

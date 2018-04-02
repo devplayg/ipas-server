@@ -82,6 +82,9 @@ func (e *Engine) Start() error {
 	if err := e.checkSubDir("logs"); err != nil {
 		return err
 	}
+	if err := e.checkSubDir("tmp"); err != nil {
+		return err
+	}
 
 	// 설정파일 읽기
 	e.Config, err = secureconfig.GetConfig(e.ConfigPath, GetEncryptionKey())

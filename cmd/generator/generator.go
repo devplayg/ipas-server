@@ -1,11 +1,11 @@
 package main
 
 import (
+	"github.com/icrowley/fake"
 	"net/http"
 	"net/url"
-	"time"
-	"github.com/icrowley/fake"
 	"strconv"
+	"time"
 )
 
 const (
@@ -19,15 +19,23 @@ func float32ToString(f32 float32) string {
 func main() {
 	t := time.Now()
 
+	dt := t.Format(DefaultDateFormat)
+	srcid := randTag(fake.CharactersN(2))
+	lat := float32ToString(fake.Latitude())
+	lon := float32ToString(fake.Longitude())
+	spd := fake.DigitsN(2)
+	snr := fake.DigitsN(1)
+	ctn := fake.Phone()
+
 	// Status
 	values := url.Values{
-		"dt":    {t.Format(DefaultDateFormat)},
-		"srcid": {randTag(fake.CharactersN(2))},
-		"lat":   { float32ToString(fake.Latitude())},
-		"lon":   { float32ToString(fake.Longitude())},
-		"spd":   {fake.DigitsN(2)},
-		"snr":   {fake.DigitsN(1)},
-		"ctn":   {fake.Phone()},
+		"dt":    {dt},
+		"srcid": {srcid},
+		"lat":   {lat},
+		"lon":   {lon},
+		"spd":   {spd},
+		"snr":   {snr},
+		"ctn":   {ctn},
 	}
 	_, err := http.PostForm("http://127.0.0.1:8080/status", values)
 	if err != nil {
@@ -36,18 +44,17 @@ func main() {
 
 	// Event
 	values = url.Values{
-		"dt":    {t.Format(DefaultDateFormat)},
-		"srcid": {randTag(fake.CharactersN(2))},
-		"dstid": {randTag(fake.CharactersN(2))+","+randTag(fake.CharactersN(2))},
-		"lat":   { float32ToString(fake.Latitude())},
-		"lon":   { float32ToString(fake.Longitude())},
-		"spd":   {fake.DigitsN(2)},
-		"snr":   {fake.DigitsN(1)},
-		"ctn":   {fake.Phone()},
-		"type":  {strconv.Itoa(fake.Year(1,2))},
+		"dt":    {dt},
+		"srcid": {srcid},
+		"dstid": {randTag(fake.CharactersN(2)) + "," + randTag(fake.CharactersN(2))},
+		"lat":   {lat},
+		"lon":   {lon},
+		"spd":   {spd},
+		"snr":   {snr},
+		"ctn":   {ctn},
+		"type":  {strconv.Itoa(fake.Year(1, 2))},
 		"dist":  {fake.DigitsN(1)},
 	}
-
 
 	_, err = http.PostForm("http://127.0.0.1:8080/event", values)
 	if err != nil {
