@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime"
 	"time"
+	"os/user"
 )
 
 const (
@@ -20,6 +21,11 @@ const (
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// 플래그
 	var (
 		version         = ipasserver.CmdFlags.Bool("version", false, "Version")
@@ -29,6 +35,8 @@ func main() {
 		batchSize       = ipasserver.CmdFlags.Int("batchsize", 4, "Batch size")
 		batchTimeout    = ipasserver.CmdFlags.Int("batchtime", 5000, "Batch timeout, in milliseconds")
 		batchMaxPending = ipasserver.CmdFlags.Int("maxpending", 4, "Maximum pending events")
+		dataDir       = ipasserver.CmdFlags.String("datadir", usr.HomeDir, "Maximum pending events")
+
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -59,13 +67,13 @@ func main() {
 
 	// 처리기 시작
 	timeout := time.Duration(*batchTimeout) * time.Millisecond
-	dispatcher := receiver.NewDispatcher(*batchSize, timeout, *batchMaxPending)
+	dispatcher := receiver.NewDispatcher(*batchSize, timeout, *batchMaxPending, *dataDir)
 	errChan := make(chan error)
 	if err := dispatcher.Start(errChan); err != nil {
 		log.Fatalf("failed to start indexing batcher: %s", err.Error())
 	}
-	log.Printf("batching configured with size %d, timeout %s, max pending %d",
-		*batchSize, timeout, *batchMaxPending)
+	log.Printf("batching configured with size %d, timeout %s, max pending %d, data directory %s",
+		*batchSize, timeout, *batchMaxPending, *dataDir)
 
 	// 라우터 시작
 	router := httprouter.New()

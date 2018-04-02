@@ -22,12 +22,3 @@ func NewEvent(eventType int, ipStr string) *Event {
 		SourceIP:  ipStr,
 	}
 }
-
-type IpasStatus struct {
-	Date       time.Time
-	ID         string
-	Speed      float32
-	Latitude   float32
-	Longitude  float32
-	ShockCount int
-}
