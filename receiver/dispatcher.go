@@ -21,16 +21,17 @@ var (
 type Dispatcher struct {
 	size     int
 	duration time.Duration
-	dataDir  string
 	c        chan *objs.Event
+	engine *ipasserver.Engine
 }
 
-func NewDispatcher(size int, duration time.Duration, max int, dataDir string) *Dispatcher {
+func NewDispatcher(size int, duration time.Duration, max int, engine *ipasserver.Engine) *Dispatcher {
 	return &Dispatcher{
 		size:     size,
 		duration: duration,
 		c:        make(chan *objs.Event, max),
-		dataDir:  dataDir,
+		engine: engine,
+		//dataDir:  dataDir,
 	}
 }
 
@@ -54,15 +55,17 @@ func (d *Dispatcher) Start(errChan chan<- error) error {
 			for _, r := range batch {
 				if r.EventType == objs.StatusEvent { // 상태정보
 					m := r.Parsed.(map[string]string)
-					line := fmt.Sprintf("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					line := fmt.Sprintf("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 						r.EventType,
 						r.SourceIP,
 						r.Received.Format(ipasserver.DateDefault),
 						m["dt"],
 						m["srcid"],
-						m["latitude"],
-						m["longitude"],
-						m["speed"],
+						m["lat"],
+						m["lon"],
+						m["spd"],
+						m["snr"],
+						m["ctn"],
 					)
 					if _, err := tmpFile.WriteString(line); err != nil {
 						errChan <- err
@@ -70,20 +73,24 @@ func (d *Dispatcher) Start(errChan chan<- error) error {
 
 				} else if r.EventType == objs.LogEvent { // 이벤트
 					m := r.Parsed.(map[string]string)
-					line := fmt.Sprintf("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					line := fmt.Sprintf("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 						r.EventType,
 						r.SourceIP,
 						r.Received.Format(ipasserver.DateDefault),
 						m["dt"],
-						m["target"],
-						m["wardist"],
-						m["caudist"],
-						m["v2vdist"],
+						m["srcid"],
+						m["dstid"],
+						m["lat"],
+						m["lon"],
+						m["spd"],
+						m["snr"],
+						m["ctn"],
+						m["type"],
+						m["dist"],
 					)
 					if _, err := tmpFile.WriteString(line); err != nil {
 						errChan <- err
 					}
-					log.Debug(filepath.Join(d.dataDir, tmpFile.Name() + "log"))
 
 				} else {
 					errChan <- errors.New(fmt.Sprintf("Invalid event type: %d", r.EventType))
@@ -92,11 +99,11 @@ func (d *Dispatcher) Start(errChan chan<- error) error {
 			if err := tmpFile.Close(); err != nil {
 				errChan <- err
 			} else {
-				if err := os.Rename(tmpFile.Name(), filepath.Join(d.dataDir, filepath.Base(tmpFile.Name()) + ".log")); err != nil {
+				if err := os.Rename(tmpFile.Name(), filepath.Join(d.engine.ProcessDir, "data", filepath.Base(tmpFile.Name()) + ".log")); err != nil {
 					errChan <- err
 				}
 			}
-			log.Debugf("Saved to file: %s", tmpFile.Name())
+			//log.Debugf("Saved to file: %s", tmpFile.Name())
 
 			// 파일 닫기 및 이동
 			batch = make([]*objs.Event, 0, d.size)
