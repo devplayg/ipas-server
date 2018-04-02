@@ -9,11 +9,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+	"log"
 )
-
-//type Receiver interface {
-//	Start(chan<- *objs.Event) error
-//}
 
 // http://127.0.0.1:8080/status?dt=2006-01-02%2015%3A04%3A05&srcid=VTSAMPLE&lat=126.886559&lon=37.480888&spd=1234.1
 
@@ -86,14 +83,23 @@ func NewEventReceiver(router *httprouter.Router) *EventReceiver {
 }
 
 func (e *EventReceiver) Start(c chan<- *objs.Event) error {
-	e.router.GET("/event", func(resp http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	e.router.POST("/event", func(resp http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		host, _, _ := net.SplitHostPort(req.RemoteAddr)
-		event := objs.NewEvent(objs.StatusEvent, host)
-		u, _ := url.ParseRequestURI(req.RequestURI)
-		parsed, _ := url.ParseQuery(u.RawQuery)
-		event.Parsed = parsed
-		date, _ := time.Parse(ipasserver.DateDefault, parsed.Get("dt"))
-		event.Received = date
+		event := objs.NewEvent(objs.LogEvent, host)
+
+		req.ParseForm()
+		m := make(map[string]string)
+		m["dt"] = req.Form.Get("dt")
+		t, err := time.Parse(ipasserver.DateDefault, req.Form.Get("dt"))
+		if err != nil {
+			log.Println(err)
+		}
+		event.Received = t
+		m["target"] = req.Form.Get("dt")
+		m["wardist"] = req.Form.Get("wardist")
+		m["caudist"] = req.Form.Get("caudist")
+		m["v2vdist"] = req.Form.Get("v2vdist")
+		event.Parsed = m
 
 		c <- event
 	})

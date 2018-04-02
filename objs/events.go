@@ -11,15 +11,15 @@ const (
 type Event struct {
 	Parsed    interface{} // 데이터
 	Received  time.Time              // 수신 시간
-	eventType int                    // 이벤트 타입
-	sourceIP  string                 // 요청 IP
+	EventType int                    // 이벤트 타입
+	SourceIP  string                 // 요청 IP
 }
 
 func NewEvent(eventType int, ipStr string) *Event {
 	return &Event{
 		Received:  time.Now(),
-		eventType: eventType,
-		sourceIP:  ipStr,
+		EventType: eventType,
+		SourceIP:  ipStr,
 	}
 }
 

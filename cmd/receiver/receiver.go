@@ -22,15 +22,13 @@ func main() {
 
 	// 플래그
 	var (
-		version = ipasserver.CmdFlags.Bool("version", false, "Version")
-		debug   = ipasserver.CmdFlags.Bool("debug", false, "Debug")
-		//cpu             = ipasserver.CmdFlags.Int("cpu", 3, "CPU Count")
+		version         = ipasserver.CmdFlags.Bool("version", false, "Version")
+		debug           = ipasserver.CmdFlags.Bool("debug", false, "Debug")
 		verbose         = ipasserver.CmdFlags.Bool("v", false, "Verbose")
 		setConfig       = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
 		batchSize       = ipasserver.CmdFlags.Int("batchsize", 4, "Batch size")
 		batchTimeout    = ipasserver.CmdFlags.Int("batchtime", 5000, "Batch timeout, in milliseconds")
 		batchMaxPending = ipasserver.CmdFlags.Int("maxpending", 4, "Maximum pending events")
-		//interval  = ipasserver.CmdFlags.Int64("i", 5000, "Interval(ms)")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -69,20 +67,17 @@ func main() {
 	log.Printf("batching configured with size %d, timeout %s, max pending %d",
 		*batchSize, timeout, *batchMaxPending)
 
-
 	// 라우터 시작
 	router := httprouter.New()
 	if err := startRouters(router, dispatcher); err != nil {
 		log.Fatalf("failed to start routers: %s")
 	}
 
-
 	go drainLog("error batch", errChan)
 
 	// Wait for signal
 	ipasserver.WaitForSignals()
 }
-
 
 func drainLog(msg string, errChan <-chan error) {
 	for {
@@ -96,9 +91,9 @@ func drainLog(msg string, errChan <-chan error) {
 }
 
 func startRouters(router *httprouter.Router, dispatcher *receiver.Dispatcher) error {
-	r1 := receiver.NewEventReceiver(router)       // 로그 수신기
+	r1 := receiver.NewEventReceiver(router) // 로그 수신기
 	r1.Start(dispatcher.C())
-	r2 := receiver.NewStatusReceiver(router)      // 상태정보 수신기
+	r2 := receiver.NewStatusReceiver(router) // 상태정보 수신기
 	r2.Start(dispatcher.C())
 	log.Fatal(http.ListenAndServe(":8080", router)) // 웹서버 시작
 	return nil
