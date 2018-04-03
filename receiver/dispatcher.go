@@ -104,6 +104,7 @@ func (d *Dispatcher) Start(errChan chan<- error) error {
 					errChan <- err
 				}
 			}
+			log.Debugf("Received: %d", len(batch))
 			//log.Debugf("Saved to file: %s", tmpFile.Name())
 
 			// 파일 닫기 및 이동
