@@ -6,7 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"runtime"
-	"github.com/devplayg/ipas-server/sorter"
+	"github.com/devplayg/ipas-server/classifier"
 )
 
 const (
@@ -57,11 +57,14 @@ func main() {
 	log.Debug(engine.Config)
 
 	// Sorter 시작
-	sorter := sorter.NewSorter(engine)
-	if err := sorter.Start(); err != nil {
+	clf := classifier.NewClassifier(engine)
+	if err := clf.Start(); err != nil {
 		log.Error(err)
 		return
 	}
+
+
+
 
 	//
 	//// 데이터 수신기 시작
@@ -85,6 +88,13 @@ func main() {
 
 	// 종료 시그널 대기
 	ipasserver.WaitForSignals()
+
+	if err := clf.Stop(); err != nil {
+		log.Error(err)
+		return
+	}
+
+
 }
 //
 //func drainLog(msg string, errChan <-chan error) {
