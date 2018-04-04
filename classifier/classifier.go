@@ -2,14 +2,16 @@ package classifier
 
 import (
 	"bufio"
-	"errors"
 	"github.com/devplayg/ipas-server"
 	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
-	"sync/atomic"
 	"time"
+	"strings"
+	"io/ioutil"
+	"fmt"
+	"github.com/astaxie/beego/orm"
 )
 
 var count uint64
@@ -71,25 +73,23 @@ func deal(ch <-chan bool, filename string) error {
 		<-ch
 	}()
 
-	var file *os.File
 	// 파일 읽기
-	if file, err := openFile(filename); err != nil {
+	file, err := openFile(filename)
+	if err != nil {
 		log.Error(err)
 		return err
 	}
-
-	file.
-
-
+	defer file.Close()
 
 	// 메모리에서 데이터 분류
+	classify(file)
 
 	// 파일 저장 및 DB 입력
 
 	// 파일 삭제
 
-	new := atomic.AddUint64(&count, 1)
-	log.Debugf("done: %d", new)
+	//new := atomic.AddUint64(&count, 1)
+	//log.Debugf("done: %d", new)
 	return nil
 	//log.Debug("start: " + name)
 	//time.Sleep(1000 * time.Millisecond)
@@ -100,6 +100,76 @@ func deal(ch <-chan bool, filename string) error {
 
 }
 
+func classify(file *os.File) error {
+	var statusData string
+	var eventData string
+
+	// Todo : Org/Group 분류
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		r := strings.SplitN(scanner.Text(), "\t", 2)
+		if r[0] == "1" { // event
+			eventData += scanner.Text()+"\n"
+
+		} else if r[0] == "2" { // status
+			statusData += scanner.Text()+"\n"
+		}
+	}
+
+
+	// 상태정보 입력
+	if len(statusData) > 0 {
+		tmpFile, err := ioutil.TempFile("c:/temp", "")
+		if err != nil {
+			return err
+		}
+		defer os.Remove(tmpFile.Name()) // clean up
+
+		// 파일에 기록
+		if _, err := tmpFile.WriteString(statusData); err != nil {
+			return err
+		}
+
+		// 닫기
+		if err := tmpFile.Close(); err != nil {
+			return err
+		}
+
+		// DB에 입력
+		if err := insertStatusData(tmpFile.Name()); err != nil {
+			return err
+		}
+	}
+
+	// 이벤트 입력
+	if len(eventData) > 0 {
+
+	}
+
+	return nil
+	//if err := scanner.Err(); err != nil {
+	//	return nil, err
+	//}
+}
+
+
+func insertStatusData(filename string) error {
+	query := `
+		LOAD DATA LOCAL INFILE '%s'
+		INTO TABLE log_ipas_status
+		FIELDS TERMINATED BY '\t'
+		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, equip_id, latitude, longitude, speed, snr, usim)
+	`
+	query = fmt.Sprintf(query, filepath.ToSlash(filename))
+	o := orm.NewOrm()
+	rs, err := o.Raw(query).Exec()
+	if err == nil {
+		rowsAffected, _ := rs.RowsAffected()
+		log.Debugf("Type: 1, Affected rows: %d", rowsAffected)
+	}
+	return nil
+}
+//date, equip_id, latitude, longitude, speed, snr, usim, event_type, distance
 func openFile(filename string) (*os.File, error) {
 	// 파일 읽기
 	var file *os.File
@@ -112,9 +182,9 @@ func openFile(filename string) (*os.File, error) {
 		} else {
 			log.Debug("Waiting: ", filename)
 		}
-		if i == 299 {
-			return nil, errors.New(err.Error() + ": " + filename)
-		}
+		//if i == 299 {
+		//	return nil, errors.New(err.Error() + ": " + filename)
+		//}
 		//log.Debug(i)
 		time.Sleep(100 * time.Millisecond)
 	}
