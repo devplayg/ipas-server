@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/astaxie/beego/orm"
 	"github.com/devplayg/golibs/secureconfig"
-
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 	"os"
