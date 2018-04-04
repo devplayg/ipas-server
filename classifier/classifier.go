@@ -2,26 +2,28 @@ package classifier
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
+	"github.com/astaxie/beego/orm"
+	"github.com/devplayg/golibs/network"
 	"github.com/devplayg/ipas-server"
 	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
+	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
-	"net"
-	"time"
-	"strings"
-	"io/ioutil"
-	"fmt"
-	"github.com/astaxie/beego/orm"
-	"sync"
-	"github.com/devplayg/golibs/network"
 	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 var count uint64
 var tagMap sync.Map
+
 type org struct {
-	orgId int
+	orgId   int
 	groupId int
 }
 
@@ -117,12 +119,10 @@ func classify(file *os.File) error {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		r := strings.Split(scanner.Text(), "\t")
-		ip := net.ParseIP(r[1])
-		u := network.IpToInt32(ip)
-		r[1] = strconv.FormatUint(uint64(u), 10)
+		r[1] = strconv.FormatUint(uint64(network.IpToInt32(net.ParseIP(r[1]))), 10)
 
 		if r[0] == "1" { // event
-			eventData += scanner.Text()+"\n"
+			eventData += scanner.Text() + "\n"
 
 		} else if r[0] == "2" { // status
 			belongTo, ok := tagMap.Load(r[4]) // Tag ID
@@ -130,33 +130,27 @@ func classify(file *os.File) error {
 				b := belongTo.(org)
 				r = append(r, string(b.orgId), string(b.groupId))
 			} else {
-				r = append(r, "1", "2")
+				r = append(r, "0", "0")
 			}
-			statusData += strings.Join(r, "\t")+"\n"
+			statusData += strings.Join(r, "\t") + "\n"
 		}
 	}
 
+	if err := scanner.Err(); err != nil {
+		return err
+	}
 
 	// 상태정보 입력
 	if len(statusData) > 0 {
-		tmpFile, err := ioutil.TempFile("c:/temp", "")
+		// 파일에 기록
+		file, err := writeStatusDataToFile(&statusData)
 		if err != nil {
 			return err
 		}
-		//defer os.Remove(tmpFile.Name()) // clean up
-
-		// 파일에 기록
-		if _, err := tmpFile.WriteString(statusData); err != nil {
-			return err
-		}
-
-		// 닫기
-		if err := tmpFile.Close(); err != nil {
-			return err
-		}
+		defer os.Remove(file.Name()) // clean up
 
 		// DB에 입력
-		if err := insertStatusData(tmpFile.Name()); err != nil {
+		if err := insertStatusData(file.Name()); err != nil {
 			return err
 		}
 	}
@@ -167,11 +161,30 @@ func classify(file *os.File) error {
 	}
 
 	return nil
-	//if err := scanner.Err(); err != nil {
-	//	return nil, err
-	//}
 }
 
+func writeStatusDataToFile(str *string) (*os.File, error) {
+	if len(*str) < 1 {
+		return nil, errors.New("no data")
+	}
+
+	tmpFile, err := ioutil.TempFile("", "")
+	if err != nil {
+		return nil, err
+	}
+
+	// 파일에 기록
+	if _, err := tmpFile.WriteString(*str); err != nil {
+		return nil, err
+	}
+
+	// 닫기
+	if err := tmpFile.Close(); err != nil {
+		return nil, err
+	}
+
+	return tmpFile, nil
+}
 
 func insertStatusData(filename string) error {
 	query := `
@@ -189,6 +202,7 @@ func insertStatusData(filename string) error {
 	}
 	return nil
 }
+
 //date, equip_id, latitude, longitude, speed, snr, usim, event_type, distance
 func openFile(filename string) (*os.File, error) {
 	// 파일 읽기
@@ -202,23 +216,8 @@ func openFile(filename string) (*os.File, error) {
 		} else {
 			log.Debug("Waiting: ", filename)
 		}
-		//if i == 299 {
-		//	return nil, errors.New(err.Error() + ": " + filename)
-		//}
-		//log.Debug(i)
 		time.Sleep(100 * time.Millisecond)
 	}
 
 	return file, err
-	//defer file.Close()
-
-	//scanner := bufio.NewScanner(file)
-	//for scanner.Scan() {
-	//	//fmt.Println(scanner.Text())
-	//}
-	//
-	//if err := scanner.Err(); err != nil {
-	//	return nil, err
-	//}
-
 }
