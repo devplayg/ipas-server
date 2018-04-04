@@ -23,8 +23,8 @@ func main() {
 	srcid := randTag(fake.CharactersN(2))
 	lat := float32ToString(fake.Latitude())
 	lon := float32ToString(fake.Longitude())
-	spd := fake.DigitsN(2)
-	snr := fake.DigitsN(1)
+	spd := strconv.Itoa(fake.Year(1,33))
+	snr := strconv.Itoa(fake.Year(1,12))
 	ctn := fake.Phone()
 
 	// Status
