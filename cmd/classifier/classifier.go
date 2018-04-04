@@ -3,10 +3,10 @@ package main
 import (
 	"github.com/devplayg/golibs/secureconfig"
 	"github.com/devplayg/ipas-server"
+	"github.com/devplayg/ipas-server/classifier"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"runtime"
-	"github.com/devplayg/ipas-server/classifier"
 )
 
 const (
@@ -20,14 +20,11 @@ func main() {
 
 	// 옵션 설정
 	var (
-		version         = ipasserver.CmdFlags.Bool("version", false, "Version")
-		debug           = ipasserver.CmdFlags.Bool("debug", false, "Debug")
-		verbose         = ipasserver.CmdFlags.Bool("v", false, "Verbose")
-		setConfig       = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
-		//batchSize       = ipasserver.CmdFlags.Int("batchsize", 4, "Batch size")
-		//batchTimeout    = ipasserver.CmdFlags.Int("batchtime", 5000, "Batch timeout, in milliseconds")
-		//batchMaxPending = ipasserver.CmdFlags.Int("maxpending", 4, "Maximum pending events")
-
+		version   = ipasserver.CmdFlags.Bool("version", false, "Version")
+		debug     = ipasserver.CmdFlags.Bool("debug", false, "Debug")
+		verbose   = ipasserver.CmdFlags.Bool("v", false, "Verbose")
+		setConfig = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
+		// woker=10
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -63,10 +60,6 @@ func main() {
 		return
 	}
 
-
-
-
-	//
 	//// 데이터 수신기 시작
 	//timeout := time.Duration(*batchTimeout) * time.Millisecond
 	//dispatcher := receiver.NewDispatcher(*batchSize, timeout, *batchMaxPending, engine)
@@ -94,8 +87,8 @@ func main() {
 		return
 	}
 
-
 }
+
 //
 //func drainLog(msg string, errChan <-chan error) {
 //	for {

@@ -32,8 +32,7 @@ func main() {
 		"dt":    {dt},
 		"srcid": {srcid},
 		"lat":   {lat},
-		"lon":   {lon},
-		"spd":   {spd},
+		"lon":   {lon},		"spd":   {spd},
 		"snr":   {snr},
 		"ctn":   {ctn},
 	}
