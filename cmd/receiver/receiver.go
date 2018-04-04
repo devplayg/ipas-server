@@ -30,7 +30,6 @@ func main() {
 		batchSize       = ipasserver.CmdFlags.Int("batchsize", 4, "Batch size")
 		batchTimeout    = ipasserver.CmdFlags.Int("batchtime", 5000, "Batch timeout, in milliseconds")
 		batchMaxPending = ipasserver.CmdFlags.Int("maxpending", 4, "Maximum pending events")
-
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
