@@ -7,14 +7,23 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
+	"net"
 	"time"
 	"strings"
 	"io/ioutil"
 	"fmt"
 	"github.com/astaxie/beego/orm"
+	"sync"
+	"github.com/devplayg/golibs/network"
+	"strconv"
 )
 
 var count uint64
+var tagMap sync.Map
+type org struct {
+	orgId int
+	groupId int
+}
 
 type Classifier struct {
 	engine  *ipasserver.Engine
@@ -107,12 +116,23 @@ func classify(file *os.File) error {
 	// Todo : Org/Group 분류
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		r := strings.SplitN(scanner.Text(), "\t", 2)
+		r := strings.Split(scanner.Text(), "\t")
+		ip := net.ParseIP(r[1])
+		u := network.IpToInt32(ip)
+		r[1] = strconv.FormatUint(uint64(u), 10)
+
 		if r[0] == "1" { // event
 			eventData += scanner.Text()+"\n"
 
 		} else if r[0] == "2" { // status
-			statusData += scanner.Text()+"\n"
+			belongTo, ok := tagMap.Load(r[4]) // Tag ID
+			if ok {
+				b := belongTo.(org)
+				r = append(r, string(b.orgId), string(b.groupId))
+			} else {
+				r = append(r, "1", "2")
+			}
+			statusData += strings.Join(r, "\t")+"\n"
 		}
 	}
 
@@ -123,7 +143,7 @@ func classify(file *os.File) error {
 		if err != nil {
 			return err
 		}
-		defer os.Remove(tmpFile.Name()) // clean up
+		//defer os.Remove(tmpFile.Name()) // clean up
 
 		// 파일에 기록
 		if _, err := tmpFile.WriteString(statusData); err != nil {
@@ -158,7 +178,7 @@ func insertStatusData(filename string) error {
 		LOAD DATA LOCAL INFILE '%s'
 		INTO TABLE log_ipas_status
 		FIELDS TERMINATED BY '\t'
-		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, equip_id, latitude, longitude, speed, snr, usim)
+		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
 	`
 	query = fmt.Sprintf(query, filepath.ToSlash(filename))
 	o := orm.NewOrm()
