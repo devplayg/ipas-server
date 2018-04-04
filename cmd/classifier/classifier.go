@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	AppName    = "IPAS Sorter"
+	AppName    = "IPAS Classifier"
 	AppVersion = "1.0.1803.10801"
 )
 
@@ -60,24 +60,6 @@ func main() {
 		return
 	}
 
-	//// 데이터 수신기 시작
-	//timeout := time.Duration(*batchTimeout) * time.Millisecond
-	//dispatcher := receiver.NewDispatcher(*batchSize, timeout, *batchMaxPending, engine)
-	//errChan := make(chan error)
-	//if err := dispatcher.Start(errChan); err != nil {
-	//	log.Fatalf("failed to start indexing batcher: %s", err.Error())
-	//}
-	//log.Debugf("batching configured with size %d, timeout %s, max pending %d",
-	//	*batchSize, timeout, *batchMaxPending)
-
-	//go drainLog("error batch", errChan)
-
-	//// HTTP 라우터 시작
-	//router := httprouter.New()
-	//if err := startRouters(router, dispatcher); err != nil {
-	//	log.Fatalf("failed to start routers: %s")
-	//}
-	//http.ListenAndServe(":8080", router) // 웹서버 시작
 
 	// 종료 시그널 대기
 	ipasserver.WaitForSignals()
@@ -88,15 +70,3 @@ func main() {
 	}
 
 }
-
-//
-//func drainLog(msg string, errChan <-chan error) {
-//	for {
-//		select {
-//		case err := <-errChan:
-//			if err != nil {
-//				log.Errorf("%s: %s", msg, err.Error())
-//			}
-//		}
-//	}
-//}
