@@ -41,6 +41,7 @@ type Engine struct {
 	processName string
 	ProcessDir  string
 	logOutput   int // 0: STDOUT, 1: File
+	LogPrefix string
 }
 
 func NewEngine(appName string, debug bool, verbose bool) *Engine {
@@ -49,6 +50,7 @@ func NewEngine(appName string, debug bool, verbose bool) *Engine {
 		processName: GetProcessName(),
 		debug:       debug,
 	}
+	e.LogPrefix = "[" + e.processName + "] "
 	abs, _ := filepath.Abs(os.Args[0])
 	e.ProcessDir = filepath.Dir(abs)
 	e.ConfigPath = filepath.Join(e.ProcessDir, "conf", "config.enc")

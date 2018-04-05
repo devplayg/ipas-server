@@ -33,6 +33,7 @@ func (r *StatusReceiver) Start(c chan<- *objs.Event) error {
 		m["spd"] = req.Form.Get("spd")
 		m["snr"] = req.Form.Get("snr")
 		m["ctn"] = req.Form.Get("ctn")
+		m["sesid"] = req.Form.Get("sesid")
 		event.Parsed = m
 
 		c <- event
@@ -67,6 +68,7 @@ func (e *EventReceiver) Start(c chan<- *objs.Event) error {
 		m["ctn"] = req.Form.Get("ctn")
 		m["type"] = req.Form.Get("type")
 		m["dist"] = req.Form.Get("dist")
+		m["sesid"] = req.Form.Get("sesid")
 		event.Parsed = m
 
 		c <- event
