@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+	"fmt"
 )
 
 const (
@@ -26,6 +27,7 @@ func main() {
 	spd := strconv.Itoa(fake.Year(1,33))
 	snr := strconv.Itoa(fake.Year(1,12))
 	ctn := fake.Phone()
+	sesid := fmt.Sprintf("%s_%s_1", srcid, t.Format("20060102150405"))
 
 	// Status
 	values := url.Values{
@@ -35,6 +37,7 @@ func main() {
 		"lon":   {lon},		"spd":   {spd},
 		"snr":   {snr},
 		"ctn":   {ctn},
+		"sesid": {sesid},
 	}
 	_, err := http.PostForm("http://127.0.0.1:8080/status", values)
 	if err != nil {
@@ -51,8 +54,9 @@ func main() {
 		"spd":   {spd},
 		"snr":   {snr},
 		"ctn":   {ctn},
-		"type":  {strconv.Itoa(fake.Year(1, 2))},
+		"type":  {strconv.Itoa(fake.Year(1, 3))},
 		"dist":  {fake.DigitsN(1)},
+		"sesid": {sesid},
 	}
 
 	_, err = http.PostForm("http://127.0.0.1:8080/event", values)

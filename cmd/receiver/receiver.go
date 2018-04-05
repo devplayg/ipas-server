@@ -60,9 +60,9 @@ func main() {
 
 	// 데이터 수신기 시작
 	timeout := time.Duration(*batchTimeout) * time.Millisecond
-	dispatcher := receiver.NewDispatcher(*batchSize, timeout, *batchMaxPending, engine)
+	stacker := receiver.NewStacker(*batchSize, timeout, *batchMaxPending, engine)
 	errChan := make(chan error)
-	if err := dispatcher.Start(errChan); err != nil {
+	if err := stacker.Start(errChan); err != nil {
 		log.Fatalf("failed to start indexing batcher: %s", err.Error())
 	}
 	log.Debugf("batching configured with size %d, timeout %s, max pending %d",
@@ -72,7 +72,7 @@ func main() {
 
 	// HTTP 라우터 시작
 	router := httprouter.New()
-	if err := startRouters(router, dispatcher); err != nil {
+	if err := startRouters(router, stacker); err != nil {
 		log.Fatalf("failed to start routers: %s")
 	}
 	http.ListenAndServe(":8080", router) // 웹서버 시작
@@ -92,7 +92,7 @@ func drainLog(msg string, errChan <-chan error) {
 	}
 }
 
-func startRouters(router *httprouter.Router, dispatcher *receiver.Dispatcher) error {
+func startRouters(router *httprouter.Router, dispatcher *receiver.Stacker) error {
 	r1 := receiver.NewEventReceiver(router) // 로그 수신기
 	r1.Start(dispatcher.C())
 	r2 := receiver.NewStatusReceiver(router) // 상태정보 수신기

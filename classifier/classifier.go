@@ -30,11 +30,13 @@ type org struct {
 type Classifier struct {
 	engine  *ipasserver.Engine
 	watcher *fsnotify.Watcher
+	tmpDir  string
 }
 
 func NewClassifier(engine *ipasserver.Engine) *Classifier {
 	return &Classifier{
 		engine: engine,
+		tmpDir: filepath.Join(engine.ProcessDir, "tmp"),
 	}
 }
 
@@ -60,9 +62,11 @@ func (c *Classifier) Start() error {
 			select {
 			case event := <-c.watcher.Events:
 				if event.Op&fsnotify.Create == fsnotify.Create {
-					ch <- true
-					go deal(ch, event.Name)
-					//log.Debugf("event: %s", event)
+					if strings.HasSuffix(event.Name, ".log") {
+						ch <- true
+						go c.deal(ch, event.Name)
+						log.Debug(c.engine.LogPrefix, event)
+					}
 				}
 			case err := <-c.watcher.Errors:
 				log.Error(err)
@@ -78,7 +82,7 @@ func (c *Classifier) Start() error {
 	return nil
 }
 
-func deal(ch <-chan bool, filename string) error {
+func (c *Classifier) deal(ch <-chan bool, filename string) error {
 	time.Sleep(10 * time.Millisecond)
 	defer func() {
 		<-ch
@@ -90,28 +94,23 @@ func deal(ch <-chan bool, filename string) error {
 		log.Error(err)
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		file.Close()
+		//os.Remove(file.Name())
+	}()
 
-	// 메모리에서 데이터 분류
-	classify(file)
-
-	// 파일 저장 및 DB 입력
+	// 메모리에서 데이터 분류 및 파일 적재
+	if err := c.classify(file); err != nil {
+		log.Error(err)
+		os.Rename(file.Name(), file.Name()+".error")
+		return err
+	}
 
 	// 파일 삭제
-
-	//new := atomic.AddUint64(&count, 1)
-	//log.Debugf("done: %d", new)
 	return nil
-	//log.Debug("start: " + name)
-	//time.Sleep(1000 * time.Millisecond)
-	//
-
-	//new := atomic.AddUint64(&count, 1)
-	//log.Debugf("done: %d", new)
-
 }
 
-func classify(file *os.File) error {
+func (c *Classifier) classify(file *os.File) error {
 	var statusData string
 	var eventData string
 
@@ -121,16 +120,22 @@ func classify(file *os.File) error {
 		r := strings.Split(scanner.Text(), "\t")
 		r[1] = strconv.FormatUint(uint64(network.IpToInt32(net.ParseIP(r[1]))), 10)
 
-		if r[0] == "1" { // event
-			eventData += scanner.Text() + "\n"
-
-		} else if r[0] == "2" { // status
-			belongTo, ok := tagMap.Load(r[4]) // Tag ID
+		if r[0] == "1" { // 이벤트 정보면
+			belongTo, ok := tagMap.Load(r[5]) // Tag ID
 			if ok {
 				b := belongTo.(org)
 				r = append(r, string(b.orgId), string(b.groupId))
 			} else {
-				r = append(r, "0", "0")
+				r = append(r, "0", "0") //
+			}
+			eventData += strings.Join(r, "\t") + "\n"
+		} else if r[0] == "2" { // 상태정보면
+			belongTo, ok := tagMap.Load(r[5]) // Tag ID
+			if ok {
+				b := belongTo.(org)
+				r = append(r, string(b.orgId), string(b.groupId))
+			} else {
+				r = append(r, "0", "0") //
 			}
 			statusData += strings.Join(r, "\t") + "\n"
 		}
@@ -140,35 +145,63 @@ func classify(file *os.File) error {
 		return err
 	}
 
-	// 상태정보 입력
-	if len(statusData) > 0 {
+	// 이벤트 정보 입력
+	if len(eventData) > 0 {
 		// 파일에 기록
-		file, err := writeStatusDataToFile(&statusData)
+		f, err := c.writeDataToFile(&eventData, "event_")
 		if err != nil {
 			return err
 		}
-		defer os.Remove(file.Name()) // clean up
+		defer os.Remove(f.Name()) // clean up
 
 		// DB에 입력
-		if err := insertStatusData(file.Name()); err != nil {
+		if err := insertEventData(f.Name()); err != nil {
 			return err
 		}
 	}
 
-	// 이벤트 입력
-	if len(eventData) > 0 {
+	// 상태정보 입력
+	if len(statusData) > 0 {
+		// 파일에 기록
+		f, err := c.writeDataToFile(&statusData, "status_")
+		if err != nil {
+			return err
+		}
+		defer os.Remove(f.Name()) // clean up
 
+		// DB에 입력
+		if err := insertStatusData(f.Name()); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func writeStatusDataToFile(str *string) (*os.File, error) {
+func insertEventData(filename string) error {
+	query := `
+		LOAD DATA LOCAL INFILE '%s'
+		INTO TABLE log_ipas_event
+		FIELDS TERMINATED BY '\t'
+		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, session_id, equip_id, targets, latitude, longitude, speed, snr, 	usim, event_type, distance, org_id, group_id)
+	`
+	query = fmt.Sprintf(query, filepath.ToSlash(filename))
+	o := orm.NewOrm()
+	rs, err := o.Raw(query).Exec()
+	if err != nil {
+		return err
+	}
+	rowsAffected, _ := rs.RowsAffected()
+	log.Debugf("type=%s, affected_rows=%d", "event", rowsAffected)
+	return nil
+}
+
+func (c *Classifier) writeDataToFile(str *string, prefix string) (*os.File, error) {
 	if len(*str) < 1 {
 		return nil, errors.New("no data")
 	}
 
-	tmpFile, err := ioutil.TempFile("", "")
+	tmpFile, err := ioutil.TempFile(c.tmpDir, prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -191,15 +224,16 @@ func insertStatusData(filename string) error {
 		LOAD DATA LOCAL INFILE '%s'
 		INTO TABLE log_ipas_status
 		FIELDS TERMINATED BY '\t'
-		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
+		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, session_id, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
 	`
 	query = fmt.Sprintf(query, filepath.ToSlash(filename))
 	o := orm.NewOrm()
 	rs, err := o.Raw(query).Exec()
-	if err == nil {
-		rowsAffected, _ := rs.RowsAffected()
-		log.Debugf("Type: 1, Affected rows: %d", rowsAffected)
+	if err != nil {
+		return err
 	}
+	rowsAffected, _ := rs.RowsAffected()
+	log.Debugf("type=%s, affected_rows=%d", "status", rowsAffected)
 	return nil
 }
 
