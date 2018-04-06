@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -34,7 +35,8 @@ func main() {
 		"dt":    {dt},
 		"srcid": {srcid},
 		"lat":   {lat},
-		"lon":   {lon},		"spd":   {spd},
+		"lon":   {lon},
+		"spd":   {spd},
 		"snr":   {snr},
 		"ctn":   {ctn},
 		"sesid": {sesid},
@@ -48,7 +50,7 @@ func main() {
 	values = url.Values{
 		"dt":    {dt},
 		"srcid": {srcid},
-		"dstid": {randTag(fake.CharactersN(2)) + "," + randTag(fake.CharactersN(2))},
+		"dstid": {getDstid()},
 		"lat":   {lat},
 		"lon":   {lon},
 		"spd":   {spd},
@@ -65,6 +67,17 @@ func main() {
 	}
 }
 
+func getDstid() string{
+	count := NumberRange(1, 3)
+
+	arr := make([]string, 0)
+	for i:= 0; i<count; i++ {
+		arr = append(arr,randTag(fake.CharactersN(2))
+	}
+
+	return strings.Join(arr, ",")
+}
+
 func randTag(name string) string {
 	tagType := NumberRange(1, 3)
 	prefix := ""
@@ -76,9 +89,10 @@ func randTag(name string) string {
 	} else if tagType == 3 {
 		prefix = "PT_"
 	}
-	prefix += name + "_"
-	//prefix += idPools[NumberRange(0, len(idPools)-1)].(string)
-	return prefix + fake.DigitsN(2)
+	prefix += name
+	return prefix
+	//prefix += name + "_"
+	//return prefix + fake.DigitsN(2)
 }
 
 func NumberRange(from, to int) int {
