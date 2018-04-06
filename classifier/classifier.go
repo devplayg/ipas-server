@@ -167,7 +167,7 @@ func (c *Classifier) classify(file *os.File) error {
 		if err != nil {
 			return err
 		}
-		defer os.Remove(f.Name()) // clean up
+		//defer os.Remove(f.Name()) // clean up
 
 		// DB에 입력
 		if err := insertIpasStatusData(f.Name()); err != nil {
@@ -176,7 +176,7 @@ func (c *Classifier) classify(file *os.File) error {
 		if err := insertIpasStatusDataToTemp(f.Name()); err != nil { // 상태정보에 사용
 			return err
 		}
-		if err := updateIpasStatus(); err != nil { // 상태정보에 사용
+		if err := updateIpasStatus(f.Name()); err != nil { // 상태정보에 사용
 			return err
 		}
 	}
@@ -199,34 +199,6 @@ func insertIpasEventData(filename string) error {
 	}
 	rowsAffected, _ := rs.RowsAffected()
 	log.Debugf("type=%s, affected_rows=%d", "event", rowsAffected)
-	return nil
-}
-
-func insertIpasStatusDataToTemp(filename string) error {
-	var query string
-	o := orm.NewOrm()
-
-	// 테이블 비우기
-	query = "truncate table log_ipas_status_temp"
-	_, err := o.Raw(query).Exec()
-	if err != nil {
-		log.Error(err)
-	}
-
-	// 상태정보를 임시 테이블에 게록
-	query = `
-		LOAD DATA LOCAL INFILE '%s'
-		INTO TABLE log_ipas_status_temp
-		FIELDS TERMINATED BY '\t'
-		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, session_id, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
-	`
-	query = fmt.Sprintf(query, filepath.ToSlash(filename))
-	rs, err := o.Raw(query).Exec()
-	if err != nil {
-		return err
-	}
-	rowsAffected, _ := rs.RowsAffected()
-	log.Debugf("type=%s, affected_rows=%d", "status", rowsAffected)
 	return nil
 }
 
@@ -271,11 +243,42 @@ func insertIpasStatusData(filename string) error {
 	return nil
 }
 
-func updateIpasStatus() error {
+
+func insertIpasStatusDataToTemp(filename string) error {
+	var query string
+	o := orm.NewOrm()
+
+
+	// 상태정보를 임시 테이블에 게록
+	query = `
+		LOAD DATA LOCAL INFILE '%s'
+		INTO TABLE log_ipas_status_temp
+		FIELDS TERMINATED BY '\t'
+		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, session_id, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
+		SET filename = '%s';
+	`
+	name := filepath.Base(filename)
+	query = fmt.Sprintf(query, filepath.ToSlash(filename), name)
+	rs, err := o.Raw(query).Exec()
+	if err != nil {
+		return err
+	}
+	rowsAffected, _ := rs.RowsAffected()
+	log.Debugf("type=%s, affected_rows=%d", "status", rowsAffected)
+
+
+	return nil
+}
+
+
+func updateIpasStatus(fp string) error {
+	name := filepath.Base(fp)
 	// 상태정보 업데이트
 	query := `
 		insert into ast_ipas(equip_id, equip_type, latitude, longitude, speed, snr, usim, ip, updated)
-		select equip_id, 0, latitude, longitude, speed, snr, usim, ip, date from log_ipas_status_temp
+		select equip_id, 0, latitude, longitude, speed, snr, usim, ip, date
+		from log_ipas_status_temp
+		where filename = ?
 		on duplicate key update
 			equip_type = values(equip_type),
 			latitude = values(latitude),
@@ -288,7 +291,13 @@ func updateIpasStatus() error {
 	`
 
 	o := orm.NewOrm()
-	_, err := o.Raw(query).Exec()
+	_, err := o.Raw(query, name).Exec()
+	if err == nil {
+		// 테이블 비우기
+		query = "delete from log_ipas_status_temp where filename = ?"
+		o.Raw(query, name).Exec()
+	}
+
 	return err
 }
 
