@@ -24,8 +24,8 @@ func main() {
 	srcid := randTag(fake.CharactersN(2))
 	lat := float32ToString(fake.Latitude())
 	lon := float32ToString(fake.Longitude())
-	spd := strconv.Itoa(fake.Year(1,33))
-	snr := strconv.Itoa(fake.Year(1,12))
+	spd := strconv.Itoa(fake.Year(-1,33))
+	snr := strconv.Itoa(fake.Year(0,12))
 	ctn := fake.Phone()
 	sesid := fmt.Sprintf("%s_%s_1", srcid, t.Format("20060102150405"))
 
@@ -54,7 +54,7 @@ func main() {
 		"spd":   {spd},
 		"snr":   {snr},
 		"ctn":   {ctn},
-		"type":  {strconv.Itoa(fake.Year(1, 3))},
+		"type":  {strconv.Itoa(fake.Year(0, 3))},
 		"dist":  {fake.DigitsN(1)},
 		"sesid": {sesid},
 	}

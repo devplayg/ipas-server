@@ -48,7 +48,7 @@ func (s *Stacker) Start(errChan chan<- error) error {
 			if err != nil {
 				errChan <- err
 			}
-			log.Debug(tmpFile.Name())
+			//log.Debug(tmpFile.Name())
 
 			// 파일 분류 및 저장
 			for _, r := range batch {
