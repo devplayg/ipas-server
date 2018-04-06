@@ -65,7 +65,7 @@ func (c *Classifier) Start() error {
 					if strings.HasSuffix(event.Name, ".log") {
 						ch <- true
 						go c.deal(ch, event.Name)
-						log.Debug(c.engine.LogPrefix, event)
+						//log.Debug(c.engine.LogPrefix, event)
 					}
 				}
 			case err := <-c.watcher.Errors:
@@ -155,7 +155,7 @@ func (c *Classifier) classify(file *os.File) error {
 		defer os.Remove(f.Name()) // clean up
 
 		// DB에 입력
-		if err := insertEventData(f.Name()); err != nil {
+		if err := insertIpasEventData(f.Name()); err != nil {
 			return err
 		}
 	}
@@ -170,7 +170,13 @@ func (c *Classifier) classify(file *os.File) error {
 		defer os.Remove(f.Name()) // clean up
 
 		// DB에 입력
-		if err := insertStatusData(f.Name()); err != nil {
+		if err := insertIpasStatusData(f.Name()); err != nil {
+			return err
+		}
+		if err := insertIpasStatusDataToTemp(f.Name()); err != nil { // 상태정보에 사용
+			return err
+		}
+		if err := updateIpasStatus(); err != nil { // 상태정보에 사용
 			return err
 		}
 	}
@@ -178,7 +184,7 @@ func (c *Classifier) classify(file *os.File) error {
 	return nil
 }
 
-func insertEventData(filename string) error {
+func insertIpasEventData(filename string) error {
 	query := `
 		LOAD DATA LOCAL INFILE '%s'
 		INTO TABLE log_ipas_event
@@ -193,6 +199,34 @@ func insertEventData(filename string) error {
 	}
 	rowsAffected, _ := rs.RowsAffected()
 	log.Debugf("type=%s, affected_rows=%d", "event", rowsAffected)
+	return nil
+}
+
+func insertIpasStatusDataToTemp(filename string) error {
+	var query string
+	o := orm.NewOrm()
+
+	// 테이블 비우기
+	query = "truncate table log_ipas_status_temp"
+	_, err := o.Raw(query).Exec()
+	if err != nil {
+		log.Error(err)
+	}
+
+	// 상태정보를 임시 테이블에 게록
+	query = `
+		LOAD DATA LOCAL INFILE '%s'
+		INTO TABLE log_ipas_status_temp
+		FIELDS TERMINATED BY '\t'
+		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, session_id, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
+	`
+	query = fmt.Sprintf(query, filepath.ToSlash(filename))
+	rs, err := o.Raw(query).Exec()
+	if err != nil {
+		return err
+	}
+	rowsAffected, _ := rs.RowsAffected()
+	log.Debugf("type=%s, affected_rows=%d", "status", rowsAffected)
 	return nil
 }
 
@@ -219,7 +253,7 @@ func (c *Classifier) writeDataToFile(str *string, prefix string) (*os.File, erro
 	return tmpFile, nil
 }
 
-func insertStatusData(filename string) error {
+func insertIpasStatusData(filename string) error {
 	query := `
 		LOAD DATA LOCAL INFILE '%s'
 		INTO TABLE log_ipas_status
@@ -235,6 +269,27 @@ func insertStatusData(filename string) error {
 	rowsAffected, _ := rs.RowsAffected()
 	log.Debugf("type=%s, affected_rows=%d", "status", rowsAffected)
 	return nil
+}
+
+func updateIpasStatus() error {
+	// 상태정보 업데이트
+	query := `
+		insert into ast_ipas(equip_id, equip_type, latitude, longitude, speed, snr, usim, ip, updated)
+		select equip_id, 0, latitude, longitude, speed, snr, usim, ip, date from log_ipas_status_temp
+		on duplicate key update
+			equip_type = values(equip_type),
+			latitude = values(latitude),
+			longitude = values(longitude),
+			speed = values(speed),
+			snr = values(snr),
+			usim = values(usim),
+			ip = values(ip),
+			updated = values(updated);
+	`
+
+	o := orm.NewOrm()
+	_, err := o.Raw(query).Exec()
+	return err
 }
 
 //date, equip_id, latitude, longitude, speed, snr, usim, event_type, distance
@@ -255,3 +310,5 @@ func openFile(filename string) (*os.File, error) {
 
 	return file, err
 }
+
+
