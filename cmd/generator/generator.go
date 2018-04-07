@@ -14,17 +14,15 @@ const (
 	DefaultDateFormat = "2006-01-02 15:04:05"
 )
 
-func float32ToString(f32 float32) string {
-	return strconv.FormatFloat(float64(f32), 'f', 6, 64)
-}
+
 
 func main() {
 	t := time.Now()
 
 	dt := t.Format(DefaultDateFormat)
 	srcid := randTag(fake.CharactersN(2))
-	lat := float32ToString(fake.Latitude())
-	lon := float32ToString(fake.Longitude())
+	lat := getLatitude("kr")
+	lon := getLongitude("kr")
 	spd := strconv.Itoa(fake.Year(-1,33))
 	snr := strconv.Itoa(fake.Year(0,12))
 	ctn := fake.Phone()
@@ -72,7 +70,7 @@ func getDstid() string{
 
 	arr := make([]string, 0)
 	for i:= 0; i<count; i++ {
-		arr = append(arr,randTag(fake.CharactersN(2))
+		arr = append(arr,randTag(fake.CharactersN(2)))
 	}
 
 	return strings.Join(arr, ",")
@@ -97,4 +95,23 @@ func randTag(name string) string {
 
 func NumberRange(from, to int) int {
 	return fake.Year(from-1, to)
+}
+
+
+func getLatitude(loc string) string {
+	i := NumberRange(35, 37)
+	d := NumberRange(100, 99999)
+
+	return fmt.Sprintf("%d.%d", i, d)
+}
+
+func getLongitude(loc string) string {
+	i := NumberRange(127, 128)
+	d := NumberRange(100, 99999)
+
+	return fmt.Sprintf("%d.%d", i, d)
+}
+
+func float32ToString(f32 float32) string {
+	return strconv.FormatFloat(float64(f32), 'f', 6, 64)
 }
