@@ -54,10 +54,11 @@ func main() {
 		"spd":   {spd},
 		"snr":   {snr},
 		"ctn":   {ctn},
-		"type":  {strconv.Itoa(fake.Year(0, 3))},
+		"type":  {strconv.Itoa(NumberRange(1, 4))},
 		"dist":  {fake.DigitsN(1)},
 		"sesid": {sesid},
 	}
+
 
 	_, err = http.PostForm("http://127.0.0.1:8080/event", values)
 	if err != nil {
