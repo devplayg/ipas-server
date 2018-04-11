@@ -1,103 +1,132 @@
 package main
 
 import (
+	"fmt"
+	"github.com/devplayg/ipas-server"
 	"github.com/icrowley/fake"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
-	"time"
-	"fmt"
 	"strings"
+	"time"
+	"log"
 )
 
 const (
-	DefaultDateFormat = "2006-01-02 15:04:05"
+	AppName    = "IPAS Data Generator"
+	AppVersion = "1.0.1804.11101"
 )
 
-
+var companies = []string{"SAM", "HND", "SK", "LG", "LOT"}
 
 func main() {
-	t := time.Now()
 
-	dt := t.Format(DefaultDateFormat)
-	srcid := randTag(fake.CharactersN(2))
-	lat := getLatitude("kr")
-	lon := getLongitude("kr")
-	spd := strconv.Itoa(fake.Year(-1,33))
-	snr := strconv.Itoa(fake.Year(0,12))
-	ctn := fake.Phone()
-	sesid := fmt.Sprintf("%s_%s_1", srcid, t.Format("20060102150405"))
+	// 옵션 설정
+	var (
+		version = ipasserver.CmdFlags.Bool("version", false, "Version")
+		count   = ipasserver.CmdFlags.Int("count", 1, "Event count")
+		addr    = ipasserver.CmdFlags.String("addr", "127.0.0.1:8080", "Address")
+	)
+	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
+	ipasserver.CmdFlags.Parse(os.Args[1:])
 
-	// Status
-	values := url.Values{
-		"dt":    {dt},
-		"srcid": {srcid},
-		"lat":   {lat},
-		"lon":   {lon},
-		"spd":   {spd},
-		"snr":   {snr},
-		"ctn":   {ctn},
-		"sesid": {sesid},
-	}
-	_, err := http.PostForm("http://127.0.0.1:8080/status", values)
-	if err != nil {
-		panic(err)
+	// 버전 출력
+	if *version {
+		ipasserver.DisplayVersion(AppName, AppVersion)
+		return
 	}
 
-	// Event
-	values = url.Values{
-		"dt":    {dt},
-		"srcid": {srcid},
-		"dstid": {getDstid()},
-		"lat":   {lat},
-		"lon":   {lon},
-		"spd":   {spd},
-		"snr":   {snr},
-		"ctn":   {ctn},
-		"type":  {strconv.Itoa(NumberRange(1, 4))},
-		"dist":  {fake.DigitsN(1)},
-		"sesid": {sesid},
-	}
+	for i := 0; i < *count; i++ {
 
+		t := time.Now()
+		dt := t.Format(ipasserver.DateDefault)
+		orgcode := getRandomOrgCode()
+		srcid := getRandomTag(orgcode)
+		lat := getLatitude("kr")
+		lon := getLongitude("kr")
+		spd := strconv.Itoa(fake.Year(-1, 33))
+		snr := strconv.Itoa(fake.Year(0, 12))
+		ctn := fake.Phone()
+		sesid := fmt.Sprintf("%s_%s_1", srcid, t.Format("20060102150405"))
 
-	_, err = http.PostForm("http://127.0.0.1:8080/event", values)
-	if err != nil {
-		panic(err)
+		// Status
+		values := url.Values{
+			"dt":    {dt},
+			"orgcode": {orgcode},
+			"srcid": {srcid},
+			"lat":   {lat},
+			"lon":   {lon},
+			"spd":   {spd},
+			"snr":   {snr},
+			"ctn":   {ctn},
+			"sesid": {sesid},
+		}
+		_, err := http.PostForm("http://"+*addr+"/status", values)
+		if err != nil {
+			panic(err)
+		}
+
+		// Event
+		values = url.Values{
+			"dt":    {dt},
+			"orgcode": {orgcode},
+			"srcid": {srcid},
+			"dstid": {getDstid(orgcode)},
+			"lat":   {lat},
+			"lon":   {lon},
+			"spd":   {spd},
+			"snr":   {snr},
+			"ctn":   {ctn},
+			"type":  {strconv.Itoa(NumberRange(1, 4))},
+			"dist":  {fake.DigitsN(1)},
+			"sesid": {sesid},
+		}
+
+		_, err = http.PostForm("http://"+*addr+"/event", values)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
-func getDstid() string{
+func getRandomOrgCode() string {
+	c := len(companies)
+	return companies[NumberRange(1, c)-1]
+}
+
+func getDstid(orgid string) string {
 	count := NumberRange(1, 3)
 
 	arr := make([]string, 0)
-	for i:= 0; i<count; i++ {
-		arr = append(arr,randTag(fake.CharactersN(2)))
+	for i := 0; i < count; i++ {
+		arr = append(arr, getRandomTag(orgid))
 	}
 
 	return strings.Join(arr, ",")
 }
 
-func randTag(name string) string {
+func getRandomTag(orgid string) string {
 	tagType := NumberRange(1, 3)
 	prefix := ""
 
 	if tagType == 1 {
-		prefix = "VT_"
+		prefix = "VT_" + orgid + "_"
 	} else if tagType == 2 {
-		prefix = "ZT_"
+		prefix = "ZT_" + orgid + "_"
 	} else if tagType == 3 {
-		prefix = "PT_"
+		prefix = "PT_" + orgid + "_"
+	} else {
+		log.Fatal("invalid tag type")
 	}
-	prefix += name
+	prefix += fake.DigitsN(1)
+
 	return prefix
-	//prefix += name + "_"
-	//return prefix + fake.DigitsN(2)
 }
 
 func NumberRange(from, to int) int {
 	return fake.Year(from-1, to)
 }
-
 
 func getLatitude(loc string) string {
 	i := NumberRange(35, 37)

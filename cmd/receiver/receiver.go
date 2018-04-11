@@ -28,9 +28,10 @@ func main() {
 		debug           = ipasserver.CmdFlags.Bool("debug", false, "Debug")
 		verbose         = ipasserver.CmdFlags.Bool("v", false, "Verbose")
 		setConfig       = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
-		batchSize       = ipasserver.CmdFlags.Int("batchsize", 4, "Batch size")
+		batchSize       = ipasserver.CmdFlags.Int("batchsize", 300, "Batch size")
 		batchTimeout    = ipasserver.CmdFlags.Int("batchtime", 1000, "Batch timeout, in milliseconds")
-		batchMaxPending = ipasserver.CmdFlags.Int("maxpending", 4, "Maximum pending events")
+		batchMaxPending = ipasserver.CmdFlags.Int("maxpending", 1000, "Maximum pending events")
+		httpport        = ipasserver.CmdFlags.String("port", ":8080", "HTTP port")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -64,7 +65,7 @@ func main() {
 	stacker := receiver.NewStacker(*batchSize, timeout, *batchMaxPending, engine)
 	errChan := make(chan error)
 	if err := stacker.Start(errChan); err != nil {
-		log.Fatalf("failed to start indexing batcher: %s", err.Error())
+		log.Fatalf("failed to start Stacker: %s", err.Error())
 	}
 	log.Debugf("batching configured with size %d, timeout %s, max pending %d",
 		*batchSize, timeout, *batchMaxPending)
@@ -73,7 +74,7 @@ func main() {
 	go drainLog("error batch", errChan)
 
 	// HTTP 라우터 시작
-	if err := startHttpServer(stacker); err != nil {
+	if err := startHttpServer(stacker, *httpport); err != nil {
 		log.Fatal(err)
 	}
 
@@ -92,7 +93,7 @@ func drainLog(msg string, errChan <-chan error) {
 	}
 }
 
-func startHttpServer(stacker *receiver.Stacker) error {
+func startHttpServer(stacker *receiver.Stacker, httpport string) error {
 	router := httprouter.New()
 
 	r1 := receiver.NewEventReceiver(router) // 로그 수신기
@@ -101,7 +102,7 @@ func startHttpServer(stacker *receiver.Stacker) error {
 	r2.Start(stacker.C())
 
 	go func() {
-		if err := http.ListenAndServe(":8080", router); err != nil {
+		if err := http.ListenAndServe(httpport, router); err != nil {
 			log.Fatal(err)
 		}
 	}()
