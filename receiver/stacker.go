@@ -54,11 +54,12 @@ func (s *Stacker) Start(errChan chan<- error) error {
 			for _, r := range batch {
 				if r.EventType == objs.LogEvent { // 이벤트
 					m := r.Parsed.(map[string]string)
-					line := fmt.Sprintf("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					line := fmt.Sprintf("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 						r.EventType,
 						r.SourceIP,
 						r.Received.Format(ipasserver.DateDefault),
 						m["dt"],
+						m["orgcode"],
 						m["sesid"],
 						m["srcid"],
 						m["dstid"],
@@ -76,11 +77,12 @@ func (s *Stacker) Start(errChan chan<- error) error {
 
 				} else if r.EventType == objs.StatusEvent { // 상태정보
 					m := r.Parsed.(map[string]string)
-					line := fmt.Sprintf("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					line := fmt.Sprintf("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 						r.EventType,
 						r.SourceIP,
 						r.Received.Format(ipasserver.DateDefault),
 						m["dt"],
+						m["orgcode"],
 						m["sesid"],
 						m["srcid"],
 						m["lat"],

@@ -27,6 +27,7 @@ func (r *StatusReceiver) Start(c chan<- *objs.Event) error {
 
 		req.ParseForm()
 		m["dt"] = req.Form.Get("dt")
+		m["orgcode"] = req.Form.Get("orgcode")
 		m["srcid"] = req.Form.Get("srcid")
 		m["lat"] = req.Form.Get("lat")
 		m["lon"] = req.Form.Get("lon")
@@ -59,6 +60,7 @@ func (e *EventReceiver) Start(c chan<- *objs.Event) error {
 
 		req.ParseForm()
 		m["dt"] = req.Form.Get("dt")
+		m["orgcode"] = req.Form.Get("orgcode")
 		m["srcid"] = req.Form.Get("srcid")
 		m["dstid"] = req.Form.Get("dstid")
 		m["lat"] = req.Form.Get("lat")

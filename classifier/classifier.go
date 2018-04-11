@@ -123,7 +123,7 @@ func (c *Classifier) classify(file *os.File) error {
 		r[1] = strconv.FormatUint(uint64(network.IpToInt32(net.ParseIP(r[1]))), 10)
 
 		if r[0] == "1" { // 이벤트 정보면
-			belongTo, ok := tagMap.Load(r[5]) // Tag ID
+			belongTo, ok := tagMap.Load(r[6]) // Tag ID
 			if ok {
 				b := belongTo.(org)
 				r = append(r, string(b.orgId), string(b.groupId))
@@ -131,8 +131,9 @@ func (c *Classifier) classify(file *os.File) error {
 				r = append(r, "0", "0") //
 			}
 			eventData += strings.Join(r, "\t") + "\n"
+
 		} else if r[0] == "2" { // 상태정보면
-			belongTo, ok := tagMap.Load(r[5]) // Tag ID
+			belongTo, ok := tagMap.Load(r[6]) // Tag ID
 			if ok {
 				b := belongTo.(org)
 				r = append(r, string(b.orgId), string(b.groupId))
@@ -174,15 +175,12 @@ func (c *Classifier) classify(file *os.File) error {
 
 		// DB에 입력
 		if err := c.insertIpasStatusData(f.Name()); err != nil {
-			log.Debug("##2")
 			return err
 		}
 		if err := c.insertIpasStatusDataToTemp(f.Name()); err != nil { // 상태정보에 사용
-			log.Debug("##3")
 			return err
 		}
 		if err := c.updateIpasStatus(f.Name()); err != nil { // 상태정보에 사용
-			log.Debug("##4")
 			return err
 		}
 	}
@@ -195,7 +193,7 @@ func (c *Classifier) insertIpasEventData(filename string) error {
 		LOAD DATA LOCAL INFILE '%s'
 		INTO TABLE log_ipas_event
 		FIELDS TERMINATED BY '\t'
-		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, session_id, equip_id, targets, latitude, longitude, speed, snr, 	usim, event_type, distance, org_id, group_id)
+		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, @dummy, session_id, equip_id, targets, latitude, longitude, speed, snr, 	usim, event_type, distance, org_id, group_id)
 	`
 	query = fmt.Sprintf(query, filepath.ToSlash(filename))
 	//o := orm.NewOrm()
@@ -205,7 +203,7 @@ func (c *Classifier) insertIpasEventData(filename string) error {
 		return err
 	}
 	rowsAffected, _ := rs.RowsAffected()
-	log.Debugf("type=%s, affected_rows=%d", "event", rowsAffected)
+	log.Debugf("table=%s, affected_rows=%d", "log_ipas_event", rowsAffected)
 	return nil
 }
 
@@ -237,7 +235,7 @@ func (c *Classifier) insertIpasStatusData(filename string) error {
 		LOAD DATA LOCAL INFILE '%s'
 		INTO TABLE log_ipas_status
 		FIELDS TERMINATED BY '\t'
-		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, session_id, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
+		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, @dummy, session_id, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
 	`
 	query = fmt.Sprintf(query, filepath.ToSlash(filename))
 	rs, err := c.engine.DB.Exec(query)
@@ -245,7 +243,7 @@ func (c *Classifier) insertIpasStatusData(filename string) error {
 		return err
 	}
 	rowsAffected, _ := rs.RowsAffected()
-	log.Debugf("type=%s, affected_rows=%d", "status", rowsAffected)
+	log.Debugf("table=%s, affected_rows=%d", "log_ipas_status", rowsAffected)
 	return nil
 }
 
@@ -261,12 +259,12 @@ func (c *Classifier) insertIpasStatusDataToTemp(filename string) error {
 		SET filename = '%s';
 	`
 	query = fmt.Sprintf(query, filepath.ToSlash(filename), filepath.Base(filename))
-	rs, err := c.engine.DB.Exec(query)
+	_, err := c.engine.DB.Exec(query)
 	if err != nil {
 		return err
 	}
-	rowsAffected, _ := rs.RowsAffected()
-	log.Debugf("type=%s, affected_rows=%d", "status", rowsAffected)
+	//rowsAffected, _ := rs.RowsAffected()
+	//log.Debugf("type=%s, affected_rows=%d", "status", rowsAffected)
 
 	return nil
 }
@@ -289,7 +287,9 @@ func (c *Classifier) updateIpasStatus(fp string) error {
 			ip = values(ip),
 			updated = values(updated);
 	`
-	_, err := c.engine.DB.Exec(query, name)
+	rs, err := c.engine.DB.Exec(query, name)
+	rowsAffected, _ := rs.RowsAffected()
+	log.Debugf("table=%s, affected_rows=%d", "status", rowsAffected)
 	if err == nil {
 		// 테이블 비우기
 		query = "delete from log_ipas_status_temp where filename = ?"
