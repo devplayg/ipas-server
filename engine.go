@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"flag"
 	"fmt"
-	"github.com/astaxie/beego/orm"
 	"github.com/devplayg/golibs/secureconfig"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
@@ -14,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"database/sql"
 )
 
 const (
@@ -42,6 +42,7 @@ type Engine struct {
 	ProcessDir  string
 	logOutput   int // 0: STDOUT, 1: File
 	LogPrefix string
+	DB *sql.DB
 }
 
 func NewEngine(appName string, debug bool, verbose bool) *Engine {
@@ -92,11 +93,17 @@ func (e *Engine) Start() error {
 	if err != nil {
 		return err
 	}
-	err = e.initDatabase()
-	if err != nil {
-		return err
-	}
 	log.Infof("Engine started. GOMAXPROCS set to %d", runtime.GOMAXPROCS(0))
+	return nil
+}
+
+func (e *Engine) Stop() error {
+	if e.DB != nil {
+		if err := e.DB.Close(); err != nil {
+			return err
+		}
+		log.Debug("Stopped")
+	}
 	return nil
 }
 
@@ -110,13 +117,13 @@ func (e *Engine) initLogger(verbose bool) error {
 	// Set log level
 	if e.debug {
 		log.SetLevel(log.DebugLevel)
-		orm.Debug = false
+		//orm.Debug = false
 	}
 
 	if verbose {
 		e.logOutput = 0
 		log.SetOutput(os.Stdout)
-		orm.DebugLog = orm.NewLog(os.Stdout)
+		//orm.DebugLog = orm.NewLog(os.Stdout)
 	} else {
 		var logFile string
 		if e.debug {
@@ -131,11 +138,11 @@ func (e *Engine) initLogger(verbose bool) error {
 		if err == nil {
 			log.SetOutput(file)
 			e.logOutput = 1
-			orm.DebugLog = orm.NewLog(file)
+			//orm.DebugLog = orm.NewLog(file)
 		} else {
 			e.logOutput = 0
 			log.SetOutput(os.Stdout)
-			orm.DebugLog = orm.NewLog(os.Stdout)
+			//orm.DebugLog = orm.NewLog(os.Stdout)
 		}
 	}
 
@@ -146,7 +153,7 @@ func (e *Engine) initLogger(verbose bool) error {
 	return nil
 }
 
-func (e *Engine) initDatabase() error {
+func (e *Engine) InitDatabase() error {
 	connStr := fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/%s?allowAllFiles=true&charset=utf8&parseTime=true&loc=%s",
 		e.Config["db.username"],
@@ -156,8 +163,17 @@ func (e *Engine) initDatabase() error {
 		e.Config["db.database"],
 		"Asia%2FSeoul")
 	log.Debugf("[db] hostname=%s, username=%s, port=%s, database=%s", e.Config["db.hostname"], e.Config["db.username"], e.Config["db.port"], e.Config["db.database"])
-	err := orm.RegisterDataBase("default", "mysql", connStr, 3, 3)
-	return err
+
+	db, _ := sql.Open("mysql", connStr)
+	err := db.Ping()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db.SetMaxIdleConns(10)
+	db.SetMaxOpenConns(10)
+	e.DB = db
+	return nil
 }
 
 func WaitForSignals() {
@@ -185,3 +201,4 @@ func GetProcessName() string {
 func GetEncryptionKey() []byte {
 	return encKey
 }
+
