@@ -8,6 +8,7 @@ import (
 	"github.com/devplayg/ipas-server"
 	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
+	"github.com/devplayg/ipas-server/objs"
 	"io/ioutil"
 	"net"
 	"os"
@@ -18,20 +19,15 @@ import (
 	"time"
 )
 
-var count uint64
-var tagMap sync.Map
 
-type org struct {
-	orgId   int
-	groupId int
-}
 
 type Classifier struct {
-	engine  *ipasserver.Engine
-	watcher *fsnotify.Watcher
-	tmpDir  string
-	worker int
-	assetMap sync.Map
+	engine       *ipasserver.Engine
+	watcher      *fsnotify.Watcher
+	tmpDir       string
+	worker       int
+	assetOrgMap  sync.Map
+	assetIpasMap sync.Map
 }
 
 func NewClassifier(engine *ipasserver.Engine, worker int) *Classifier {
@@ -52,12 +48,11 @@ func (c *Classifier) Stop() error {
 	return nil
 }
 
-func (c *Classifier) loadAssets() error {
+func (c *Classifier) loadOrgAssets() error {
 	var (
-		code string
+		code  string
 		orgId int
 	)
-
 	rows, err := c.engine.DB.Query("select code, asset_id org_id from ast_asset where class = ? and type1 = ?", 1, 1)
 	if err != nil {
 		return err
@@ -68,7 +63,7 @@ func (c *Classifier) loadAssets() error {
 		if err != nil {
 			return err
 		}
-		c.assetMap.Store(code ,orgId)
+		c.assetOrgMap.Store(code, orgId)
 	}
 	err = rows.Err()
 	if err != nil {
@@ -78,10 +73,43 @@ func (c *Classifier) loadAssets() error {
 	return nil
 }
 
-func (c *Classifier) Start() error {
-	// Load asset
+func (c *Classifier) loadIpasAssets() error {
+	var (
+		equipId string
+		orgId   int
+		groupId int
+	)
+	rows, err := c.engine.DB.Query("select equip_id, org_id, group_id from ast_ipas")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err := rows.Scan(&equipId, &orgId, &groupId)
+		if err != nil {
+			return err
+		}
+		c.assetIpasMap.Store(equipId, objs.Org{orgId, groupId})
+	}
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+	//c.assetIpasMap.Range(func(k, v interface{}) bool {
+	//	return true
+	//})
 
-	if err := c.loadAssets(); err != nil {
+	return nil
+}
+
+func (c *Classifier) Start() error {
+	// 기관자산 로딩
+	if err := c.loadOrgAssets(); err != nil {
+		log.Error(err)
+	}
+
+	// 기존 IPAS 소속정보 로딩
+	if err := c.loadIpasAssets(); err != nil {
 		log.Error(err)
 	}
 
@@ -98,7 +126,7 @@ func (c *Classifier) Start() error {
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					if strings.HasSuffix(event.Name, ".log") {
 						ch <- true
-						go c.deal(ch, event.Name)
+						go c.deal(ch, event.Name) // 로그 분류
 					}
 				}
 			case err := <-c.watcher.Errors:
@@ -152,27 +180,36 @@ func (c *Classifier) classify(file *os.File) error {
 	// 라인 단위로 파일 읽기
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
+
+		// 파싱
 		r := strings.Split(scanner.Text(), "\t")
+
+		// 문자열 IP를 정수형 IP로 변환
 		r[1] = strconv.FormatUint(uint64(network.IpToInt32(net.ParseIP(r[1]))), 10)
-		var orgId int
 
-		if r[0] == "1" { // 이벤트 정보면
-			belongTo, ok := tagMap.Load(r[6]) // Tag ID
-			if ok {
-				b := belongTo.(org)
-				r = append(r, string(b.orgId), string(b.groupId))
-			} else {
-				r = append(r, "0", "0") //
+		// Ipas 분류
+		var (
+			orgId int
+			groupId int
+		)
+
+		// 기관코드 정의
+		if valOrg, ok := c.assetOrgMap.Load(r[4]); ok { // code : asset_id
+			orgId = valOrg.(int)
+		}
+
+		// 기존 기관코드 확인
+		if valOrg, ok := c.assetIpasMap.Load(r[6]); ok { // equip_id : org(org_id + group_id)
+			obj := valOrg.(objs.Org)
+			//log.Debugf("[%s] %d == %d ", r[6], orgId, obj.OrgId)
+			if orgId == obj.OrgId { // 기관코드과 기존과 동일하면
+				groupId = obj.GroupId // 그룹코드 유지
 			}
+		}
 
-			val, ok := c.assetMap.Load(r[4])
-			if ok {
-				orgId = val.(int)
-			}
-
-			//eventData += strings.Join(r, "\t") + "\n"
-			eventData += fmt.Sprintf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-				r[3], orgId, 0, r[13], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[14],  r[1], r[2])
+		if r[0] == "1" { // 데이터 타입이 "이벤트" 이면
+			eventData += fmt.Sprintf("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+				r[3], orgId, groupId, r[13], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[14], r[1], r[2])
 			//1	date
 			//2	org_id
 			//3	group_id
@@ -189,28 +226,12 @@ func (c *Classifier) classify(file *os.File) error {
 			//14	ip
 			//15	recv_date
 
-			//			1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	SAM	VT_SAM_8_20180411170103_1	VT_SAM_8	VT_SAM_0,VT_SAM_8,ZT_SAM_2	37.19359	128.70250	9	8	2-423-618-38-65	4	9
-			//			1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	LG	PT_LG_6_20180411170103_1	PT_LG_6	ZT_LG_2,VT_LG_5,VT_LG_9	37.66667	127.72560	22	1	7-677-105-37-04	1	1
+			//	1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	SAM	VT_SAM_8_20180411170103_1	VT_SAM_8	VT_SAM_0,VT_SAM_8,ZT_SAM_2	37.19359	128.70250	9	8	2-423-618-38-65	4	9
+			//	1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	LG	PT_LG_6_20180411170103_1	PT_LG_6	ZT_LG_2,VT_LG_5,VT_LG_9	37.66667	127.72560	22	1	7-677-105-37-04	1	1
 
-
-
-		} else if r[0] == "2" { // 상태정보면
-			belongTo, ok := tagMap.Load(r[6]) // Tag ID
-			if ok {
-				b := belongTo.(org)
-				r = append(r, string(b.orgId), string(b.groupId))
-			} else {
-				r = append(r, "0", "0") //
-			}
-
-			val, ok := c.assetMap.Load(r[4])
-			if ok {
-				orgId = val.(int)
-			}
-
-			//statusData += strings.Join(r, "\t") + "\n"
-			statusData += fmt.Sprintf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-				r[3], orgId, 0, r[5],  r[6], r[7], r[8], r[9], r[10], r[11], r[1], r[2])
+		} else if r[0] == "2" { // 데이터 타입이 "상태정보"이면
+			statusData += fmt.Sprintf("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+				r[3], orgId, groupId, r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[1], r[2])
 			//1	date
 			//2	org_id
 			//3	group_id
@@ -224,8 +245,8 @@ func (c *Classifier) classify(file *os.File) error {
 			//11	ip
 			//12	recv_date
 
-			//			2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	SAM	VT_SAM_8_20180411170103_1	VT_SAM_8	37.19359	128.70250	9	8	2-423-618-38-65
-			//			2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	LG	PT_LG_6_20180411170103_1	PT_LG_6	37.66667	127.72560	22	1	7-677-105-37-04
+			//	2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	SAM	VT_SAM_8_20180411170103_1	VT_SAM_8	37.19359	128.70250	9	8	2-423-618-38-65
+			//	2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	LG	PT_LG_6_20180411170103_1	PT_LG_6	37.66667	127.72560	22	1	7-677-105-37-04
 		}
 	}
 

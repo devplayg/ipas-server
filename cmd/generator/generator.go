@@ -72,7 +72,7 @@ func main() {
 			"dt":    {dt},
 			"orgcode": {orgcode},
 			"srcid": {srcid},
-			"dstid": {getDstid(orgcode)},
+			"dstid": {getRandomTag(orgcode)},
 			"lat":   {lat},
 			"lon":   {lon},
 			"spd":   {spd},
