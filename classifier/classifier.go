@@ -131,6 +131,29 @@ func (c *Classifier) classify(file *os.File) error {
 				r = append(r, "0", "0") //
 			}
 			eventData += strings.Join(r, "\t") + "\n"
+			//fmt.Sprintf(r)
+			//1	date
+			//2	org_id
+			//3	group_id
+			//4	event_type
+			//5	session_id
+			//6	equip_id
+			//7	targets
+			//8	latitude
+			//9	longitude
+			//10	speed
+			//11	snr
+			//12	usim
+			//13	distance
+			//14	ip
+			//15	recv_date
+
+			//			1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	SAM	VT_SAM_8_20180411170103_1	VT_SAM_8	VT_SAM_0,VT_SAM_8,ZT_SAM_2	37.19359	128.70250	9	8	2-423-618-38-65	4	9
+			//			1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	LG	PT_LG_6_20180411170103_1	PT_LG_6	ZT_LG_2,VT_LG_5,VT_LG_9	37.66667	127.72560	22	1	7-677-105-37-04	1	1
+			//			2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	SAM	VT_SAM_8_20180411170103_1	VT_SAM_8	37.19359	128.70250	9	8	2-423-618-38-65
+			//			2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	LG	PT_LG_6_20180411170103_1	PT_LG_6	37.66667	127.72560	22	1	7-677-105-37-04
+
+
 
 		} else if r[0] == "2" { // 상태정보면
 			belongTo, ok := tagMap.Load(r[6]) // Tag ID
@@ -141,6 +164,19 @@ func (c *Classifier) classify(file *os.File) error {
 				r = append(r, "0", "0") //
 			}
 			statusData += strings.Join(r, "\t") + "\n"
+			//1	date
+			//2	org_id
+			//3	group_id
+			//4	session_id
+			//5	equip_id
+			//6	latitude
+			//7	longitude
+			//8	speed
+			//9	snr
+			//10	usim
+			//11	ip
+			//12	recv_date
+
 		}
 	}
 
@@ -155,7 +191,7 @@ func (c *Classifier) classify(file *os.File) error {
 		if err != nil {
 			return err
 		}
-		defer os.Remove(f.Name()) // clean up
+		//defer os.Remove(f.Name()) // clean up
 
 		// DB에 입력
 		if err := c.insertIpasEventData(f.Name()); err != nil {
@@ -255,7 +291,7 @@ func (c *Classifier) insertIpasStatusDataToTemp(filename string) error {
 		LOAD DATA LOCAL INFILE '%s'
 		INTO TABLE log_ipas_status_temp
 		FIELDS TERMINATED BY '\t'
-		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, session_id, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
+		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, @dummy, session_id, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
 		SET filename = '%s';
 	`
 	query = fmt.Sprintf(query, filepath.ToSlash(filename), filepath.Base(filename))
