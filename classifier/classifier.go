@@ -31,6 +31,7 @@ type Classifier struct {
 	watcher *fsnotify.Watcher
 	tmpDir  string
 	worker int
+	assetMap sync.Map
 }
 
 func NewClassifier(engine *ipasserver.Engine, worker int) *Classifier {
@@ -51,7 +52,39 @@ func (c *Classifier) Stop() error {
 	return nil
 }
 
+func (c *Classifier) loadAssets() error {
+	var (
+		code string
+		orgId int
+	)
+
+	rows, err := c.engine.DB.Query("select code, asset_id org_id from ast_asset where class = ? and type1 = ?", 1, 1)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err := rows.Scan(&code, &orgId)
+		if err != nil {
+			return err
+		}
+		c.assetMap.Store(code ,orgId)
+	}
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Classifier) Start() error {
+	// Load asset
+
+	if err := c.loadAssets(); err != nil {
+		log.Error(err)
+	}
+
 	ch := make(chan bool, c.worker)
 	var err error
 	c.watcher, err = fsnotify.NewWatcher()
@@ -116,11 +149,12 @@ func (c *Classifier) classify(file *os.File) error {
 	var statusData string
 	var eventData string
 
-	// Todo : Org/Group 분류
+	// 라인 단위로 파일 읽기
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		r := strings.Split(scanner.Text(), "\t")
 		r[1] = strconv.FormatUint(uint64(network.IpToInt32(net.ParseIP(r[1]))), 10)
+		var orgId int
 
 		if r[0] == "1" { // 이벤트 정보면
 			belongTo, ok := tagMap.Load(r[6]) // Tag ID
@@ -130,13 +164,20 @@ func (c *Classifier) classify(file *os.File) error {
 			} else {
 				r = append(r, "0", "0") //
 			}
-			eventData += strings.Join(r, "\t") + "\n"
-			//fmt.Sprintf(r)
+
+			val, ok := c.assetMap.Load(r[4])
+			if ok {
+				orgId = val.(int)
+			}
+
+			//eventData += strings.Join(r, "\t") + "\n"
+			eventData += fmt.Sprintf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+				r[3], orgId, 0, r[13], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[14],  r[1], r[2])
 			//1	date
 			//2	org_id
 			//3	group_id
 			//4	event_type
-			//5	session_id
+			//5	session_id /
 			//6	equip_id
 			//7	targets
 			//8	latitude
@@ -150,8 +191,6 @@ func (c *Classifier) classify(file *os.File) error {
 
 			//			1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	SAM	VT_SAM_8_20180411170103_1	VT_SAM_8	VT_SAM_0,VT_SAM_8,ZT_SAM_2	37.19359	128.70250	9	8	2-423-618-38-65	4	9
 			//			1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	LG	PT_LG_6_20180411170103_1	PT_LG_6	ZT_LG_2,VT_LG_5,VT_LG_9	37.66667	127.72560	22	1	7-677-105-37-04	1	1
-			//			2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	SAM	VT_SAM_8_20180411170103_1	VT_SAM_8	37.19359	128.70250	9	8	2-423-618-38-65
-			//			2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	LG	PT_LG_6_20180411170103_1	PT_LG_6	37.66667	127.72560	22	1	7-677-105-37-04
 
 
 
@@ -163,7 +202,15 @@ func (c *Classifier) classify(file *os.File) error {
 			} else {
 				r = append(r, "0", "0") //
 			}
-			statusData += strings.Join(r, "\t") + "\n"
+
+			val, ok := c.assetMap.Load(r[4])
+			if ok {
+				orgId = val.(int)
+			}
+
+			//statusData += strings.Join(r, "\t") + "\n"
+			statusData += fmt.Sprintf("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+				r[3], orgId, 0, r[5],  r[6], r[7], r[8], r[9], r[10], r[11], r[1], r[2])
 			//1	date
 			//2	org_id
 			//3	group_id
@@ -177,6 +224,8 @@ func (c *Classifier) classify(file *os.File) error {
 			//11	ip
 			//12	recv_date
 
+			//			2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	SAM	VT_SAM_8_20180411170103_1	VT_SAM_8	37.19359	128.70250	9	8	2-423-618-38-65
+			//			2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	LG	PT_LG_6_20180411170103_1	PT_LG_6	37.66667	127.72560	22	1	7-677-105-37-04
 		}
 	}
 
@@ -229,7 +278,7 @@ func (c *Classifier) insertIpasEventData(filename string) error {
 		LOAD DATA LOCAL INFILE '%s'
 		INTO TABLE log_ipas_event
 		FIELDS TERMINATED BY '\t'
-		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, @dummy, session_id, equip_id, targets, latitude, longitude, speed, snr, 	usim, event_type, distance, org_id, group_id)
+		LINES TERMINATED BY '\n' 
 	`
 	query = fmt.Sprintf(query, filepath.ToSlash(filename))
 	//o := orm.NewOrm()
@@ -271,7 +320,7 @@ func (c *Classifier) insertIpasStatusData(filename string) error {
 		LOAD DATA LOCAL INFILE '%s'
 		INTO TABLE log_ipas_status
 		FIELDS TERMINATED BY '\t'
-		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, @dummy, session_id, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
+		LINES TERMINATED BY '\n' 
 	`
 	query = fmt.Sprintf(query, filepath.ToSlash(filename))
 	rs, err := c.engine.DB.Exec(query)
@@ -291,7 +340,8 @@ func (c *Classifier) insertIpasStatusDataToTemp(filename string) error {
 		LOAD DATA LOCAL INFILE '%s'
 		INTO TABLE log_ipas_status_temp
 		FIELDS TERMINATED BY '\t'
-		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, @dummy, session_id, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
+		LINES TERMINATED BY '\n' 
+		(date,org_id,group_id,session_id,equip_id,latitude,longitude,speed,snr,usim,ip,recv_date)
 		SET filename = '%s';
 	`
 	query = fmt.Sprintf(query, filepath.ToSlash(filename), filepath.Base(filename))
@@ -309,11 +359,12 @@ func (c *Classifier) updateIpasStatus(fp string) error {
 	name := filepath.Base(fp)
 	// 상태정보 업데이트
 	query := `
-		insert into ast_ipas(equip_id, equip_type, latitude, longitude, speed, snr, usim, ip, updated)
-		select equip_id, 0, latitude, longitude, speed, snr, usim, ip, date
+		insert into ast_ipas(equip_id, org_id, equip_type, latitude, longitude, speed, snr, usim, ip, updated)
+		select equip_id, org_id, 0, latitude, longitude, speed, snr, usim, ip, date
 		from log_ipas_status_temp
 		where filename = ?
 		on duplicate key update
+			org_id = values(org_id),
 			equip_type = values(equip_type),
 			latitude = values(latitude),
 			longitude = values(longitude),
