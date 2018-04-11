@@ -20,7 +20,7 @@
 --
 
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `ipasm` /*!40100 DEFAULT CHARACTER SET utf8 */;
-
+-- mysqldump -u root --skip-add-drop-table -d -B -p  ipasm > ipasm-tables.sql
 USE `ipasm`;
 
 --
@@ -66,9 +66,10 @@ CREATE TABLE `adt_audit_detail` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `ast_asset` (
   `asset_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `class` int(10) unsigned NOT NULL COMMENT '1:Server, 2: Sensor, 3: Agent',
+  `class` int(10) unsigned NOT NULL COMMENT '1:IPAS-Org, 2: reserved',
   `parent_id` int(10) unsigned NOT NULL,
   `name` varchar(128) NOT NULL,
+  `code` varchar(16) NOT NULL DEFAULT '',
   `type1` int(10) unsigned NOT NULL,
   `type2` int(10) unsigned NOT NULL DEFAULT '0',
   `seq` int(10) unsigned NOT NULL DEFAULT '0',
@@ -76,6 +77,7 @@ CREATE TABLE `ast_asset` (
   `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`asset_id`),
   KEY `ix_parent_id` (`parent_id`),
+  KEY `ix_code` (`code`),
   KEY `ix_class` (`class`),
   KEY `ix_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -90,6 +92,7 @@ CREATE TABLE `ast_asset` (
 CREATE TABLE `ast_ipas` (
   `equip_id` varchar(16) NOT NULL,
   `equip_type` int(11) NOT NULL COMMENT 'vt, zt, pt',
+  `org_id` int(10) unsigned NOT NULL DEFAULT '0',
   `group_id` int(10) unsigned NOT NULL DEFAULT '0',
   `latitude` float(10,6) NOT NULL DEFAULT '0.000000',
   `longitude` float(10,6) NOT NULL DEFAULT '0.000000',
@@ -102,8 +105,9 @@ CREATE TABLE `ast_ipas` (
   `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`equip_id`),
-  KEY `ix_ast_ipas_equip_type` (`equip_type`),
-  KEY `ix_ast_ipas_group_id` (`group_id`)
+  KEY `ix_ast_ipas_equiptype` (`equip_type`),
+  KEY `ix_ast_ipas_orgid` (`org_id`),
+  KEY `ix_ast_ipas_groupid` (`group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -415,4 +419,4 @@ CREATE TABLE `sys_config` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-04-07 15:28:45
+-- Dump completed on 2018-04-11 23:13:30
