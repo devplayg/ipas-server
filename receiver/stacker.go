@@ -55,21 +55,21 @@ func (s *Stacker) Start(errChan chan<- error) error {
 				if r.EventType == objs.LogEvent { // 이벤트
 					m := r.Parsed.(map[string]string)
 					line := fmt.Sprintf("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-						r.EventType,
-						r.SourceIP,
-						r.Received.Format(ipasserver.DateDefault),
-						m["dt"],
-						m["orgcode"],
-						m["sesid"],
-						m["srcid"],
-						m["dstid"],
-						m["lat"],
-						m["lon"],
-						m["spd"],
-						m["snr"],
-						m["ctn"],
-						m["type"],
-						m["dist"],
+						r.EventType, //	0
+						r.SourceIP,  //	1
+						r.Received.Format(ipasserver.DateDefault), //	2
+						m["dt"],      //	3
+						m["orgcode"], //	4
+						m["sesid"],   //	5
+						m["srcid"],   //	6
+						m["dstid"],   //	7
+						m["lat"],     //	8
+						m["lon"],     //	9
+						m["spd"],     //	10
+						m["snr"],     //	11
+						m["ctn"],     //	12
+						m["type"],    //	13
+						m["dist"],    //	14
 					)
 					if _, err := tmpFile.WriteString(line); err != nil {
 						errChan <- err
@@ -78,19 +78,20 @@ func (s *Stacker) Start(errChan chan<- error) error {
 				} else if r.EventType == objs.StatusEvent { // 상태정보
 					m := r.Parsed.(map[string]string)
 					line := fmt.Sprintf("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-						r.EventType,
-						r.SourceIP,
-						r.Received.Format(ipasserver.DateDefault),
-						m["dt"],
-						m["orgcode"],
-						m["sesid"],
-						m["srcid"],
-						m["lat"],
-						m["lon"],
-						m["spd"],
-						m["snr"],
-						m["ctn"],
+						r.EventType, // 0
+						r.SourceIP,  // 1
+						r.Received.Format(ipasserver.DateDefault), // 2
+						m["dt"],      //	3
+						m["orgcode"], //	4
+						m["sesid"],   //	5
+						m["srcid"],   //	6
+						m["lat"],     //	7
+						m["lon"],     //	8
+						m["spd"],     //	9
+						m["snr"],     //	10
+						m["ctn"],     //	11
 					)
+
 					if _, err := tmpFile.WriteString(line); err != nil {
 						errChan <- err
 					}
