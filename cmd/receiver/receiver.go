@@ -6,18 +6,19 @@ import (
 	"github.com/devplayg/ipas-server/receiver"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 	"os"
 	"runtime"
 	"time"
-	"net/http"
 )
 
 const (
 	AppName    = "IPAS Receiver"
-	AppVersion = "1.0.1803.10801"
+	AppVersion = "1.0.1804.11001"
 )
 
 func main() {
+
 	// CPU 설정
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -28,7 +29,7 @@ func main() {
 		verbose         = ipasserver.CmdFlags.Bool("v", false, "Verbose")
 		setConfig       = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
 		batchSize       = ipasserver.CmdFlags.Int("batchsize", 4, "Batch size")
-		batchTimeout    = ipasserver.CmdFlags.Int("batchtime", 5000, "Batch timeout, in milliseconds")
+		batchTimeout    = ipasserver.CmdFlags.Int("batchtime", 1000, "Batch timeout, in milliseconds")
 		batchMaxPending = ipasserver.CmdFlags.Int("maxpending", 4, "Maximum pending events")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
@@ -53,12 +54,12 @@ func main() {
 
 	// 엔진 시작
 	if err := engine.Start(); err != nil {
-		log.Error(err)
-		return
+		log.Fatal(err)
 	}
+	defer engine.Stop()
 	log.Debug(engine.Config)
 
-	// 데이터 수신기 시작
+	// Receiver(수집기) 시작
 	timeout := time.Duration(*batchTimeout) * time.Millisecond
 	stacker := receiver.NewStacker(*batchSize, timeout, *batchMaxPending, engine)
 	errChan := make(chan error)
@@ -68,14 +69,13 @@ func main() {
 	log.Debugf("batching configured with size %d, timeout %s, max pending %d",
 		*batchSize, timeout, *batchMaxPending)
 
+	// 에러 출력
 	go drainLog("error batch", errChan)
 
 	// HTTP 라우터 시작
-	router := httprouter.New()
-	if err := startRouters(router, stacker); err != nil {
-		log.Fatalf("failed to start routers: %s")
+	if err := startHttpServer(stacker); err != nil {
+		log.Fatal(err)
 	}
-	http.ListenAndServe(":8080", router) // 웹서버 시작
 
 	// 종료 시그널 대기
 	ipasserver.WaitForSignals()
@@ -92,10 +92,19 @@ func drainLog(msg string, errChan <-chan error) {
 	}
 }
 
-func startRouters(router *httprouter.Router, dispatcher *receiver.Stacker) error {
+func startHttpServer(stacker *receiver.Stacker) error {
+	router := httprouter.New()
+
 	r1 := receiver.NewEventReceiver(router) // 로그 수신기
-	r1.Start(dispatcher.C())
+	r1.Start(stacker.C())
 	r2 := receiver.NewStatusReceiver(router) // 상태정보 수신기
-	r2.Start(dispatcher.C())
+	r2.Start(stacker.C())
+
+	go func() {
+		if err := http.ListenAndServe(":8080", router); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	return nil
 }

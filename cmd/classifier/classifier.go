@@ -24,7 +24,7 @@ func main() {
 		debug     = ipasserver.CmdFlags.Bool("debug", false, "Debug")
 		verbose   = ipasserver.CmdFlags.Bool("v", false, "Verbose")
 		setConfig = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
-		// woker=10
+		worker    = ipasserver.CmdFlags.Int("worker", 5, "Worker count")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -48,25 +48,22 @@ func main() {
 
 	// 엔진 시작
 	if err := engine.Start(); err != nil {
-		log.Error(err)
-		return
+		log.Fatal(err)
 	}
 	log.Debug(engine.Config)
 
-	// Sorter 시작
-	clf := classifier.NewClassifier(engine)
-	if err := clf.Start(); err != nil {
-		log.Error(err)
-		return
+	// 데이터베이스 연결
+	if err := engine.InitDatabase(); err != nil {
+		log.Fatal(err)
 	}
 
+	// Sorter 시작
+	clf := classifier.NewClassifier(engine, *worker)
+	if err := clf.Start(); err != nil {
+		log.Fatal(err)
+	}
+	defer clf.Stop()
 
 	// 종료 시그널 대기
 	ipasserver.WaitForSignals()
-
-	if err := clf.Stop(); err != nil {
-		log.Error(err)
-		return
-	}
-
 }

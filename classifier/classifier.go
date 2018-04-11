@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/astaxie/beego/orm"
 	"github.com/devplayg/golibs/network"
 	"github.com/devplayg/ipas-server"
 	"github.com/fsnotify/fsnotify"
@@ -31,11 +30,13 @@ type Classifier struct {
 	engine  *ipasserver.Engine
 	watcher *fsnotify.Watcher
 	tmpDir  string
+	worker int
 }
 
-func NewClassifier(engine *ipasserver.Engine) *Classifier {
+func NewClassifier(engine *ipasserver.Engine, worker int) *Classifier {
 	return &Classifier{
 		engine: engine,
+		worker: worker,
 		tmpDir: filepath.Join(engine.ProcessDir, "tmp"),
 	}
 }
@@ -51,7 +52,7 @@ func (c *Classifier) Stop() error {
 }
 
 func (c *Classifier) Start() error {
-	ch := make(chan bool, 2)
+	ch := make(chan bool, c.worker)
 	var err error
 	c.watcher, err = fsnotify.NewWatcher()
 	if err != nil {
@@ -65,11 +66,12 @@ func (c *Classifier) Start() error {
 					if strings.HasSuffix(event.Name, ".log") {
 						ch <- true
 						go c.deal(ch, event.Name)
-						//log.Debug(c.engine.LogPrefix, event)
 					}
 				}
 			case err := <-c.watcher.Errors:
-				log.Error(err)
+				if err != nil {
+					log.Error(err)
+				}
 			}
 		}
 	}()
@@ -101,7 +103,7 @@ func (c *Classifier) deal(ch <-chan bool, filename string) error {
 
 	// 메모리에서 데이터 분류 및 파일 적재
 	if err := c.classify(file); err != nil {
-		log.Error(err)
+		log.Error(err.Error())
 		os.Rename(file.Name(), file.Name()+".error")
 		return err
 	}
@@ -155,7 +157,8 @@ func (c *Classifier) classify(file *os.File) error {
 		defer os.Remove(f.Name()) // clean up
 
 		// DB에 입력
-		if err := insertIpasEventData(f.Name()); err != nil {
+		if err := c.insertIpasEventData(f.Name()); err != nil {
+			log.Debug("##1")
 			return err
 		}
 	}
@@ -170,13 +173,16 @@ func (c *Classifier) classify(file *os.File) error {
 		//defer os.Remove(f.Name()) // clean up
 
 		// DB에 입력
-		if err := insertIpasStatusData(f.Name()); err != nil {
+		if err := c.insertIpasStatusData(f.Name()); err != nil {
+			log.Debug("##2")
 			return err
 		}
-		if err := insertIpasStatusDataToTemp(f.Name()); err != nil { // 상태정보에 사용
+		if err := c.insertIpasStatusDataToTemp(f.Name()); err != nil { // 상태정보에 사용
+			log.Debug("##3")
 			return err
 		}
-		if err := updateIpasStatus(f.Name()); err != nil { // 상태정보에 사용
+		if err := c.updateIpasStatus(f.Name()); err != nil { // 상태정보에 사용
+			log.Debug("##4")
 			return err
 		}
 	}
@@ -184,7 +190,7 @@ func (c *Classifier) classify(file *os.File) error {
 	return nil
 }
 
-func insertIpasEventData(filename string) error {
+func (c *Classifier) insertIpasEventData(filename string) error {
 	query := `
 		LOAD DATA LOCAL INFILE '%s'
 		INTO TABLE log_ipas_event
@@ -192,8 +198,9 @@ func insertIpasEventData(filename string) error {
 		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, session_id, equip_id, targets, latitude, longitude, speed, snr, 	usim, event_type, distance, org_id, group_id)
 	`
 	query = fmt.Sprintf(query, filepath.ToSlash(filename))
-	o := orm.NewOrm()
-	rs, err := o.Raw(query).Exec()
+	//o := orm.NewOrm()
+
+	rs, err := c.engine.DB.Exec(query)
 	if err != nil {
 		return err
 	}
@@ -225,7 +232,7 @@ func (c *Classifier) writeDataToFile(str *string, prefix string) (*os.File, erro
 	return tmpFile, nil
 }
 
-func insertIpasStatusData(filename string) error {
+func (c *Classifier) insertIpasStatusData(filename string) error {
 	query := `
 		LOAD DATA LOCAL INFILE '%s'
 		INTO TABLE log_ipas_status
@@ -233,8 +240,7 @@ func insertIpasStatusData(filename string) error {
 		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, session_id, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
 	`
 	query = fmt.Sprintf(query, filepath.ToSlash(filename))
-	o := orm.NewOrm()
-	rs, err := o.Raw(query).Exec()
+	rs, err := c.engine.DB.Exec(query)
 	if err != nil {
 		return err
 	}
@@ -243,11 +249,8 @@ func insertIpasStatusData(filename string) error {
 	return nil
 }
 
-
-func insertIpasStatusDataToTemp(filename string) error {
+func (c *Classifier) insertIpasStatusDataToTemp(filename string) error {
 	var query string
-	o := orm.NewOrm()
-
 
 	// 상태정보를 임시 테이블에 게록
 	query = `
@@ -257,21 +260,18 @@ func insertIpasStatusDataToTemp(filename string) error {
 		LINES TERMINATED BY '\n' (@dummy, ip, date, recv_date, session_id, equip_id, latitude, longitude, speed, snr, usim, org_id, group_id)
 		SET filename = '%s';
 	`
-	name := filepath.Base(filename)
-	query = fmt.Sprintf(query, filepath.ToSlash(filename), name)
-	rs, err := o.Raw(query).Exec()
+	query = fmt.Sprintf(query, filepath.ToSlash(filename), filepath.Base(filename))
+	rs, err := c.engine.DB.Exec(query)
 	if err != nil {
 		return err
 	}
 	rowsAffected, _ := rs.RowsAffected()
 	log.Debugf("type=%s, affected_rows=%d", "status", rowsAffected)
 
-
 	return nil
 }
 
-
-func updateIpasStatus(fp string) error {
+func (c *Classifier) updateIpasStatus(fp string) error {
 	name := filepath.Base(fp)
 	// 상태정보 업데이트
 	query := `
@@ -289,13 +289,11 @@ func updateIpasStatus(fp string) error {
 			ip = values(ip),
 			updated = values(updated);
 	`
-
-	o := orm.NewOrm()
-	_, err := o.Raw(query, name).Exec()
+	_, err := c.engine.DB.Exec(query, name)
 	if err == nil {
 		// 테이블 비우기
 		query = "delete from log_ipas_status_temp where filename = ?"
-		o.Raw(query, name).Exec()
+		c.engine.DB.Exec(query)
 	}
 
 	return err
@@ -319,5 +317,3 @@ func openFile(filename string) (*os.File, error) {
 
 	return file, err
 }
-
-
