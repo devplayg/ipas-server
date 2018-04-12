@@ -48,7 +48,18 @@ func (c *Classifier) Stop() error {
 	return nil
 }
 
-func (c *Classifier) loadOrgAssets() error {
+func (c *Classifier) loadOrgAssets(signal string) error {
+	if len(signal) > 0 {
+		defer func() {
+			log.Debug("reloading IPAS complete")
+			time.Sleep(300*time.Microsecond)
+			err := os.Remove(signal)
+			if err!= nil {
+				log.Error(err)
+			}
+		}()
+	}
+
 	var (
 		code  string
 		orgId int
@@ -73,7 +84,18 @@ func (c *Classifier) loadOrgAssets() error {
 	return nil
 }
 
-func (c *Classifier) loadIpasAssets() error {
+func (c *Classifier) loadIpasAssets(signal string) error {
+	if len(signal) > 0 {
+		defer func() {
+			log.Debug("reloading assets complete")
+			time.Sleep(300*time.Microsecond)
+			err := os.Remove(signal)
+			if err!= nil {
+				log.Error(err)
+			}
+		}()
+	}
+
 	var (
 		equipId string
 		orgId   int
@@ -95,21 +117,19 @@ func (c *Classifier) loadIpasAssets() error {
 	if err != nil {
 		return err
 	}
-	//c.assetIpasMap.Range(func(k, v interface{}) bool {
-	//	return true
-	//})
+
 
 	return nil
 }
 
 func (c *Classifier) Start() error {
 	// 기관자산 로딩
-	if err := c.loadOrgAssets(); err != nil {
+	if err := c.loadOrgAssets(""); err != nil {
 		log.Error(err)
 	}
 
 	// 기존 IPAS 소속정보 로딩
-	if err := c.loadIpasAssets(); err != nil {
+	if err := c.loadIpasAssets(""); err != nil {
 		log.Error(err)
 	}
 
@@ -126,7 +146,16 @@ func (c *Classifier) Start() error {
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					if strings.HasSuffix(event.Name, ".log") {
 						ch <- true
+						log.Debug("deal")
 						go c.deal(ch, event.Name) // 로그 분류
+
+					} else if filepath.Base(event.Name) == "ast_ipas.sig" {
+						log.Debug("reload IPAS")
+						go c.loadIpasAssets(event.Name)
+
+					} else if filepath.Base(event.Name) == "ast_asset.sig" {
+						log.Debug("reloading assets")
+						go c.loadIpasAssets(event.Name)
 					}
 				}
 			case err := <-c.watcher.Errors:
