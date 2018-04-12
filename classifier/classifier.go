@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/devplayg/golibs/network"
 	"github.com/devplayg/ipas-server"
+	"github.com/devplayg/ipas-server/objs"
 	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
-	"github.com/devplayg/ipas-server/objs"
 	"io/ioutil"
 	"net"
 	"os"
@@ -18,8 +18,6 @@ import (
 	"sync"
 	"time"
 )
-
-
 
 type Classifier struct {
 	engine       *ipasserver.Engine
@@ -52,9 +50,9 @@ func (c *Classifier) loadOrgAssets(signal string) error {
 	if len(signal) > 0 {
 		defer func() {
 			log.Debug("reloading IPAS complete")
-			time.Sleep(300*time.Microsecond)
+			time.Sleep(300 * time.Microsecond)
 			err := os.Remove(signal)
-			if err!= nil {
+			if err != nil {
 				log.Warn(err)
 			}
 		}()
@@ -88,10 +86,10 @@ func (c *Classifier) loadIpasAssets(signal string) error {
 	if len(signal) > 0 {
 		defer func() {
 			log.Debug("reloading assets complete")
-			time.Sleep(300*time.Microsecond)
+			time.Sleep(300 * time.Microsecond)
 			err := os.Remove(signal)
-			if err!= nil {
-				log.Warn((err)
+			if err != nil {
+				log.Warn(err)
 			}
 		}()
 	}
@@ -117,7 +115,6 @@ func (c *Classifier) loadIpasAssets(signal string) error {
 	if err != nil {
 		return err
 	}
-
 
 	return nil
 }
@@ -218,7 +215,7 @@ func (c *Classifier) classify(file *os.File) error {
 
 		// Ipas 분류
 		var (
-			orgId int
+			orgId   int
 			groupId int
 		)
 
