@@ -55,7 +55,7 @@ func (c *Classifier) loadOrgAssets(signal string) error {
 			time.Sleep(300*time.Microsecond)
 			err := os.Remove(signal)
 			if err!= nil {
-				log.Error(err)
+				log.Warn(err)
 			}
 		}()
 	}
@@ -91,7 +91,7 @@ func (c *Classifier) loadIpasAssets(signal string) error {
 			time.Sleep(300*time.Microsecond)
 			err := os.Remove(signal)
 			if err!= nil {
-				log.Error(err)
+				log.Warn((err)
 			}
 		}()
 	}
