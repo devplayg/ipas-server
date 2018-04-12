@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"github.com/devplayg/ipas-server"
 	"github.com/icrowley/fake"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-	"log"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 	AppVersion = "1.0.1804.11101"
 )
 
-var companies = []string{"us1", "us2", "kr1", "kr2", "jp1", "jp2","unknown"}
+var companies = []string{"us1", "us2", "kr1", "kr2", "jp1", "jp2", "unknown"}
 
 func main() {
 
@@ -52,15 +52,15 @@ func main() {
 
 		// Status
 		values := url.Values{
-			"dt":    {dt},
+			"dt":      {dt},
 			"orgcode": {orgcode},
-			"srcid": {srcid},
-			"lat":   {lat},
-			"lon":   {lon},
-			"spd":   {spd},
-			"snr":   {snr},
-			"ctn":   {ctn},
-			"sesid": {sesid},
+			"srcid":   {srcid},
+			"lat":     {lat},
+			"lon":     {lon},
+			"spd":     {spd},
+			"snr":     {snr},
+			"ctn":     {ctn},
+			"sesid":   {sesid},
 		}
 		_, err := http.PostForm("http://"+*addr+"/status", values)
 		if err != nil {
@@ -69,18 +69,18 @@ func main() {
 
 		// Event
 		values = url.Values{
-			"dt":    {dt},
+			"dt":      {dt},
 			"orgcode": {orgcode},
-			"srcid": {srcid},
-			"dstid": {getRandomTag(orgcode)},
-			"lat":   {lat},
-			"lon":   {lon},
-			"spd":   {spd},
-			"snr":   {snr},
-			"ctn":   {ctn},
-			"type":  {strconv.Itoa(NumberRange(1, 4))},
-			"dist":  {fake.DigitsN(1)},
-			"sesid": {sesid},
+			"srcid":   {srcid},
+			"dstid":   {getRandomTag(orgcode)},
+			"lat":     {lat},
+			"lon":     {lon},
+			"spd":     {spd},
+			"snr":     {snr},
+			"ctn":     {ctn},
+			"type":    {strconv.Itoa(NumberRange(1, 4))},
+			"dist":    {fake.DigitsN(1)},
+			"sesid":   {sesid},
 		}
 
 		_, err = http.PostForm("http://"+*addr+"/event", values)
