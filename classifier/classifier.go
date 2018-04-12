@@ -149,11 +149,11 @@ func (c *Classifier) Start() error {
 						log.Debug("deal")
 						go c.deal(ch, event.Name) // 로그 분류
 
-					} else if filepath.Base(event.Name) == "ast_ipas.sig" {
+					} else if filepath.Base(event.Name) == "ast_ipas.sig" { // 자산(기관/그룹) 변경 이벤트
 						log.Debug("reload IPAS")
 						go c.loadIpasAssets(event.Name)
 
-					} else if filepath.Base(event.Name) == "ast_asset.sig" {
+					} else if filepath.Base(event.Name) == "ast_asset.sig" { // IPAS 자산 변경 이벤트
 						log.Debug("reloading assets")
 						go c.loadIpasAssets(event.Name)
 					}
