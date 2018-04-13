@@ -69,9 +69,10 @@ CREATE TABLE `ast_asset` (
   `class` int(10) unsigned NOT NULL COMMENT '1:IPAS-Org, 2: reserved',
   `parent_id` int(10) unsigned NOT NULL,
   `name` varchar(128) NOT NULL,
-  `code` varchar(16) NOT NULL DEFAULT '',
   `type1` int(10) unsigned NOT NULL,
   `type2` int(10) unsigned NOT NULL DEFAULT '0',
+  `code` varchar(16) NOT NULL DEFAULT '',
+  `icon` varchar(256) NOT NULL DEFAULT '',
   `seq` int(10) unsigned NOT NULL DEFAULT '0',
   `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -80,7 +81,7 @@ CREATE TABLE `ast_asset` (
   KEY `ix_code` (`code`),
   KEY `ix_class` (`class`),
   KEY `ix_name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -90,10 +91,10 @@ CREATE TABLE `ast_asset` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `ast_ipas` (
-  `equip_id` varchar(16) NOT NULL,
-  `equip_type` int(11) NOT NULL COMMENT 'vt, zt, pt',
   `org_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `equip_id` varchar(16) NOT NULL,
   `group_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `equip_type` int(11) NOT NULL COMMENT 'vt, zt, pt',
   `latitude` float(10,6) NOT NULL DEFAULT '0.000000',
   `longitude` float(10,6) NOT NULL DEFAULT '0.000000',
   `speed` int(11) NOT NULL DEFAULT '0',
@@ -104,7 +105,7 @@ CREATE TABLE `ast_ipas` (
   `ip` int(10) unsigned NOT NULL DEFAULT '0',
   `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`equip_id`),
+  PRIMARY KEY (`org_id`, `equip_id`),
   KEY `ix_ast_ipas_equiptype` (`equip_type`),
   KEY `ix_ast_ipas_orgid` (`org_id`),
   KEY `ix_ast_ipas_groupid` (`group_id`)
