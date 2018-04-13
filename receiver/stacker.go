@@ -59,8 +59,8 @@ func (s *Stacker) Start(errChan chan<- error) error {
 						r.SourceIP,  //	1
 						r.Received.Format(ipasserver.DateDefault), //	2
 						m["dt"],      //	3
-						m["orgcode"], //	4
-						m["sesid"],   //	5
+						m["sesid"],   //	4
+						m["orgcode"], //	5
 						m["srcid"],   //	6
 						m["dstid"],   //	7
 						m["lat"],     //	8
@@ -82,8 +82,8 @@ func (s *Stacker) Start(errChan chan<- error) error {
 						r.SourceIP,  // 1
 						r.Received.Format(ipasserver.DateDefault), // 2
 						m["dt"],      //	3
-						m["orgcode"], //	4
-						m["sesid"],   //	5
+						m["sesid"],   //	4
+						m["orgcode"], //	5
 						m["srcid"],   //	6
 						m["lat"],     //	7
 						m["lon"],     //	8
