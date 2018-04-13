@@ -95,21 +95,31 @@ func (c *Classifier) loadIpasAssets(signal string) error {
 	}
 
 	var (
+		code    string
 		equipId string
 		orgId   int
 		groupId int
 	)
-	rows, err := c.engine.DB.Query("select equip_id, org_id, group_id from ast_ipas")
+	query := `
+		select t1.code, equip_id, org_id, group_id
+		from ast_ipas t left outer join (
+			select asset_id, code
+			from ast_asset
+			where class = 1 and type1 = 1
+		) t1 on t1.asset_id = t.org_id
+		where code is not null
+	`
+	rows, err := c.engine.DB.Query(query)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&equipId, &orgId, &groupId)
+		err := rows.Scan(&code, &equipId, &orgId, &groupId)
 		if err != nil {
 			return err
 		}
-		c.assetIpasMap.Store(equipId, objs.Org{orgId, groupId})
+		c.assetIpasMap.Store(code+equipId, objs.Org{orgId, groupId})
 	}
 	err = rows.Err()
 	if err != nil {
@@ -208,6 +218,8 @@ func (c *Classifier) classify(file *os.File) error {
 	for scanner.Scan() {
 
 		// 파싱
+		//	1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	VT_SAM_8_20180411170103_1	SAM	VT_SAM_8	VT_SAM_0	37.19359	128.70250	9	8	2-423-618-38-65	4	9
+		//	1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	PT_LG_6_20180411170103_1	LG	PT_LG_6		ZT_LG_2		37.66667	127.72560	22	1	7-677-105-37-04	1	1
 		r := strings.Split(scanner.Text(), "\t")
 
 		// 문자열 IP를 정수형 IP로 변환
@@ -220,12 +232,12 @@ func (c *Classifier) classify(file *os.File) error {
 		)
 
 		// 기관코드 정의
-		if valOrg, ok := c.assetOrgMap.Load(r[4]); ok { // code : asset_id
+		if valOrg, ok := c.assetOrgMap.Load(r[5]); ok { // code : asset_id
 			orgId = valOrg.(int)
 		}
 
 		// 기존 기관코드 확인
-		if valOrg, ok := c.assetIpasMap.Load(r[6]); ok { // equip_id : org(org_id + group_id)
+		if valOrg, ok := c.assetIpasMap.Load(r[5] + r[6]); ok { // equip_id : org(org_id + group_id)
 			obj := valOrg.(objs.Org)
 			//log.Debugf("[%s] %d == %d ", r[6], orgId, obj.OrgId)
 			if orgId == obj.OrgId { // 기관코드과 기존과 동일하면
@@ -235,7 +247,7 @@ func (c *Classifier) classify(file *os.File) error {
 
 		if r[0] == "1" { // 데이터 타입이 "이벤트" 이면
 			eventData += fmt.Sprintf("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-				r[3], orgId, groupId, r[13], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[14], r[1], r[2])
+				r[3], orgId, groupId, r[13], r[4], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[14], r[1], r[2])
 			//1	date
 			//2	org_id
 			//3	group_id
@@ -252,12 +264,9 @@ func (c *Classifier) classify(file *os.File) error {
 			//14	ip
 			//15	recv_date
 
-			//	1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	SAM	VT_SAM_8_20180411170103_1	VT_SAM_8	VT_SAM_0,VT_SAM_8,ZT_SAM_2	37.19359	128.70250	9	8	2-423-618-38-65	4	9
-			//	1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	LG	PT_LG_6_20180411170103_1	PT_LG_6	ZT_LG_2,VT_LG_5,VT_LG_9	37.66667	127.72560	22	1	7-677-105-37-04	1	1
-
 		} else if r[0] == "2" { // 데이터 타입이 "상태정보"이면
 			statusData += fmt.Sprintf("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-				r[3], orgId, groupId, r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[1], r[2])
+				r[3], orgId, groupId, r[4], r[6], r[7], r[8], r[9], r[10], r[11], r[1], r[2])
 			//1	date
 			//2	org_id
 			//3	group_id
@@ -271,8 +280,8 @@ func (c *Classifier) classify(file *os.File) error {
 			//11	ip
 			//12	recv_date
 
-			//	2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	SAM	VT_SAM_8_20180411170103_1	VT_SAM_8	37.19359	128.70250	9	8	2-423-618-38-65
-			//	2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	LG	PT_LG_6_20180411170103_1	PT_LG_6	37.66667	127.72560	22	1	7-677-105-37-04
+			//	2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	VT_SAM_8_20180411170103_1	SAM	VT_SAM_8	37.19359	128.70250	9	8	2-423-618-38-65
+			//	2	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	PT_LG_6_20180411170103_1	LG	PT_LG_6		37.66667	127.72560	22	1	7-677-105-37-04
 		}
 	}
 
