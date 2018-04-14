@@ -62,7 +62,7 @@ func (c *Classifier) loadOrgAssets(signal string) error {
 		code  string
 		orgId int
 	)
-	rows, err := c.engine.DB.Query("select code, asset_id org_id from ast_asset where class = ? and type1 = ?", 1, 1)
+	rows, err := c.engine.DB.Query("select code, asset_id org_id from ast_code")
 	if err != nil {
 		return err
 	}
@@ -102,12 +102,8 @@ func (c *Classifier) loadIpasAssets(signal string) error {
 	)
 	query := `
 		select t1.code, equip_id, org_id, group_id
-		from ast_ipas t left outer join (
-			select asset_id, code
-			from ast_asset
-			where class = 1 and type1 = 1
-		) t1 on t1.asset_id = t.org_id
-		where code is not null
+		from ast_ipas t left outer join ast_code t1 on t1.asset_id = t.org_id
+		where t1.code is not null
 	`
 	rows, err := c.engine.DB.Query(query)
 	if err != nil {
