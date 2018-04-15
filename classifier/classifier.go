@@ -231,6 +231,7 @@ func (c *Classifier) classify(file *os.File) error {
 		if valOrg, ok := c.assetOrgMap.Load(r[5]); ok { // code : asset_id
 			orgId = valOrg.(int)
 		} else {
+			// 기관코드 없는 이벤트는 제외
 			log.Warnf("[unclassified] %s", scanner.Text())
 			continue
 		}
