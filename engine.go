@@ -59,6 +59,10 @@ func NewEngine(appName string, debug bool, verbose bool) *Engine {
 	return &e
 }
 
+func (e *Engine) IsDebug() bool {
+	return e.debug
+}
+
 func (e *Engine) checkSubDir(subDir string) error {
 	dir := filepath.Join(e.ProcessDir, subDir)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {

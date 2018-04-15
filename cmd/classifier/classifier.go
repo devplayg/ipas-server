@@ -57,7 +57,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Sorter 시작
+	// 데이터 분류 시작
 	clf := classifier.NewClassifier(engine, *worker)
 	if err := clf.Start(); err != nil {
 		log.Fatal(err)
