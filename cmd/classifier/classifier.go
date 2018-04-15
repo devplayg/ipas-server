@@ -24,7 +24,7 @@ func main() {
 		debug     = ipasserver.CmdFlags.Bool("debug", false, "Debug")
 		verbose   = ipasserver.CmdFlags.Bool("v", false, "Verbose")
 		setConfig = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
-		worker    = ipasserver.CmdFlags.Int("worker", 5, "Worker count")
+		worker    = ipasserver.CmdFlags.Int("worker", runtime.NumCPU(), "Worker count")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])

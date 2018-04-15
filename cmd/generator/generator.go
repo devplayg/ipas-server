@@ -37,8 +37,8 @@ func main() {
 		return
 	}
 
+	start := time.Now()
 	for i := 0; i < *count; i++ {
-
 		t := time.Now()
 		dt := t.Format(ipasserver.DateDefault)
 		orgcode := getRandomOrgCode()
@@ -87,7 +87,10 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+
 	}
+	dur := time.Since(start).Seconds()
+	fmt.Printf("Time: %3.2f seconds, EPS: %3.1f\n", dur, (float64(*count)*2/dur))
 }
 
 func getRandomOrgCode() string {
