@@ -230,6 +230,9 @@ func (c *Classifier) classify(file *os.File) error {
 		// 기관코드 정의
 		if valOrg, ok := c.assetOrgMap.Load(r[5]); ok { // code : asset_id
 			orgId = valOrg.(int)
+		} else {
+			log.Warnf("[unclassified] %s", scanner.Text())
+			continue
 		}
 
 		// 기존 기관코드 확인
