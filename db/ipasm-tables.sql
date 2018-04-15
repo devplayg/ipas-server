@@ -20,7 +20,7 @@
 --
 
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `ipasm` /*!40100 DEFAULT CHARACTER SET utf8 */;
--- mysqldump -u root --skip-add-drop-table -d -B -p  ipasm > ipasm-tables.sql
+
 USE `ipasm`;
 
 --
@@ -71,17 +71,31 @@ CREATE TABLE `ast_asset` (
   `name` varchar(128) NOT NULL,
   `type1` int(10) unsigned NOT NULL,
   `type2` int(10) unsigned NOT NULL DEFAULT '0',
-  `code` varchar(16) NOT NULL DEFAULT '',
   `icon` varchar(256) NOT NULL DEFAULT '',
   `seq` int(10) unsigned NOT NULL DEFAULT '0',
   `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`asset_id`),
-  KEY `ix_parent_id` (`parent_id`),
-  KEY `ix_code` (`code`),
-  KEY `ix_class` (`class`),
-  KEY `ix_name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8
+  KEY `ix_ast_asset_parentId` (`parent_id`),
+  KEY `ix_ast_asset_class` (`class`),
+  KEY `ix_ast_asset_class_type1` (`class`, `type1`),
+  KEY `ix_ast_asset_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ast_code`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `ast_code` (
+  `asset_id` int(10) unsigned NOT NULL,
+  `code` varchar(32) NOT NULL,
+  PRIMARY KEY (`asset_id`),
+  UNIQUE KEY `ix_ast_code_code` (`code`),
+  CONSTRAINT `fk_ast_code_asset_id` FOREIGN KEY (`asset_id`) REFERENCES `ast_asset` (`asset_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -100,15 +114,32 @@ CREATE TABLE `ast_ipas` (
   `speed` int(11) NOT NULL DEFAULT '0',
   `snr` int(11) NOT NULL DEFAULT '0',
   `usim` varchar(32) NOT NULL DEFAULT '',
-  `speeding_count` int(11) NOT NULL DEFAULT '0',
-  `shock_count` int(11) NOT NULL DEFAULT '0',
+  `name` varchar(32) NOT NULL DEFAULT '',
   `ip` int(10) unsigned NOT NULL DEFAULT '0',
   `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`org_id`, `equip_id`),
+  PRIMARY KEY (`org_id`,`equip_id`),
   KEY `ix_ast_ipas_equiptype` (`equip_type`),
   KEY `ix_ast_ipas_orgid` (`org_id`),
-  KEY `ix_ast_ipas_groupid` (`group_id`)
+  KEY `ix_ast_ipas_groupid` (`group_id`),
+  CONSTRAINT `fk_ast_ipas_orgid` FOREIGN KEY (`org_id`) REFERENCES `ast_asset` (`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ast_ipas_detail`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `ast_ipas_detail` (
+  `org_id` int(10) unsigned NOT NULL,
+  `equip_id` varchar(16) NOT NULL,
+  `event_type` int(11) NOT NULL,
+  `count` int(11) NOT NULL DEFAULT '0',
+  KEY `fk_ast_ipas_detail_orgid_equipid` (`org_id`,`equip_id`),
+  CONSTRAINT `fk_ast_ipas_detail_orgid` FOREIGN KEY (`org_id`) REFERENCES `ast_asset` (`asset_id`),
+  CONSTRAINT `fk_ast_ipas_detail_orgid_equipid` FOREIGN KEY (`org_id`, `equip_id`) REFERENCES `ast_ipas` (`org_id`, `equip_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -130,36 +161,6 @@ CREATE TABLE `ast_ipas_old` (
   `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`equip_id`),
   KEY `ix_ast_ipas_type` (`type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `ast_namecard`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `ast_namecard` (
-  `ip` int(10) unsigned NOT NULL,
-  `network_id` int(11) NOT NULL DEFAULT '0',
-  `name` varchar(128) DEFAULT NULL,
-  `email` varchar(254) NOT NULL DEFAULT '',
-  `nickname` varchar(128) DEFAULT NULL,
-  `dept1` varchar(128) DEFAULT NULL,
-  `dept2` varchar(128) DEFAULT NULL,
-  `position` varchar(64) DEFAULT NULL,
-  `phone1` varchar(64) DEFAULT NULL,
-  `phone2` varchar(64) DEFAULT NULL,
-  `address1` varchar(64) DEFAULT NULL,
-  `address2` varchar(64) DEFAULT NULL,
-  `country` varchar(64) DEFAULT NULL,
-  `state` varchar(64) DEFAULT NULL,
-  `city` varchar(64) DEFAULT NULL,
-  `zipcode` varchar(64) DEFAULT NULL,
-  `memo` varchar(64) DEFAULT NULL,
-  PRIMARY KEY (`ip`),
-  KEY `ix_network_id` (`network_id`),
-  KEY `ix_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -420,4 +421,4 @@ CREATE TABLE `sys_config` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-04-11 23:13:30
+-- Dump completed on 2018-04-15 12:01:51
