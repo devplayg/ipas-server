@@ -122,7 +122,7 @@ CREATE TABLE `ast_ipas` (
   KEY `ix_ast_ipas_equiptype` (`equip_type`),
   KEY `ix_ast_ipas_orgid` (`org_id`),
   KEY `ix_ast_ipas_groupid` (`group_id`),
-  CONSTRAINT `fk_ast_ipas_orgid` FOREIGN KEY (`org_id`) REFERENCES `ast_asset` (`asset_id`)
+  CONSTRAINT `fk_ast_ipas_orgid` FOREIGN KEY (`org_id`) REFERENCES `ast_asset` (`asset_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -138,8 +138,8 @@ CREATE TABLE `ast_ipas_detail` (
   `event_type` int(11) NOT NULL,
   `count` int(11) NOT NULL DEFAULT '0',
   KEY `fk_ast_ipas_detail_orgid_equipid` (`org_id`,`equip_id`),
-  CONSTRAINT `fk_ast_ipas_detail_orgid` FOREIGN KEY (`org_id`) REFERENCES `ast_asset` (`asset_id`),
-  CONSTRAINT `fk_ast_ipas_detail_orgid_equipid` FOREIGN KEY (`org_id`, `equip_id`) REFERENCES `ast_ipas` (`org_id`, `equip_id`)
+  CONSTRAINT `fk_ast_ipas_detail_orgid` FOREIGN KEY (`org_id`) REFERENCES `ast_asset` (`asset_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_ast_ipas_detail_orgid_equipid` FOREIGN KEY (`org_id`, `equip_id`) REFERENCES `ast_ipas` (`org_id`, `equip_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
