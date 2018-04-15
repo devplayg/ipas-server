@@ -18,7 +18,7 @@ const (
 	AppVersion = "1.0.1804.11101"
 )
 
-var companies = []string{"us1", "us2", "kr1", "kr2", "jp1", "jp2", "unknown"}
+var companies = []string{"us1", "us2", "kr1", "kr2", "jp1", "jp2"}
 
 func main() {
 

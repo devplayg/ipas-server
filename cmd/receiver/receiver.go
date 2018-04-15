@@ -28,9 +28,9 @@ func main() {
 		debug           = ipasserver.CmdFlags.Bool("debug", false, "Debug")
 		verbose         = ipasserver.CmdFlags.Bool("v", false, "Verbose")
 		setConfig       = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
-		batchSize       = ipasserver.CmdFlags.Int("batchsize", 300, "Batch size")
+		batchSize       = ipasserver.CmdFlags.Int("batchsize", 1000, "Batch size")
 		batchTimeout    = ipasserver.CmdFlags.Int("batchtime", 1000, "Batch timeout, in milliseconds")
-		batchMaxPending = ipasserver.CmdFlags.Int("maxpending", 1000, "Maximum pending events")
+		batchMaxPending = ipasserver.CmdFlags.Int("maxpending", 10000, "Maximum pending events")
 		httpport        = ipasserver.CmdFlags.String("port", ":8080", "HTTP port")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
