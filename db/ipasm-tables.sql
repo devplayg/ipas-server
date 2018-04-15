@@ -20,6 +20,7 @@
 --
 
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `ipasm` /*!40100 DEFAULT CHARACTER SET utf8 */;
+-- mysqldump -u root --skip-add-drop-table -d -B -p  ipasm > ipasm-tables.sql
 
 USE `ipasm`;
 
@@ -78,7 +79,7 @@ CREATE TABLE `ast_asset` (
   PRIMARY KEY (`asset_id`),
   KEY `ix_ast_asset_parentId` (`parent_id`),
   KEY `ix_ast_asset_class` (`class`),
-  KEY `ix_ast_asset_class_type1` (`class`, `type1`),
+  KEY `ix_ast_asset_class_type1` (`class`,`type1`),
   KEY `ix_ast_asset_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -127,19 +128,19 @@ CREATE TABLE `ast_ipas` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `ast_ipas_detail`
+-- Table structure for table `ast_ipas_extensions`
 --
 
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `ast_ipas_detail` (
+CREATE TABLE `ast_ipas_extensions` (
   `org_id` int(10) unsigned NOT NULL,
   `equip_id` varchar(16) NOT NULL,
   `event_type` int(11) NOT NULL,
   `count` int(11) NOT NULL DEFAULT '0',
-  KEY `fk_ast_ipas_detail_orgid_equipid` (`org_id`,`equip_id`),
-  CONSTRAINT `fk_ast_ipas_detail_orgid` FOREIGN KEY (`org_id`) REFERENCES `ast_asset` (`asset_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_ast_ipas_detail_orgid_equipid` FOREIGN KEY (`org_id`, `equip_id`) REFERENCES `ast_ipas` (`org_id`, `equip_id`) ON DELETE CASCADE ON UPDATE CASCADE
+  PRIMARY KEY (`org_id`,`equip_id`,`event_type`),
+  CONSTRAINT `fk_ast_ipas_extensions_orgid` FOREIGN KEY (`org_id`) REFERENCES `ast_asset` (`asset_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_ast_ipas_extensions_orgid_equipid` FOREIGN KEY (`org_id`, `equip_id`) REFERENCES `ast_ipas` (`org_id`, `equip_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -256,7 +257,7 @@ CREATE TABLE `log_ipas_status` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `log_ipas_status_temp` (
-  `filename` varchar(256) NOT NULL,
+  `file_name` varchar(256) NOT NULL,
   `date` datetime NOT NULL,
   `org_id` int(10) unsigned NOT NULL DEFAULT '0',
   `group_id` int(10) unsigned NOT NULL DEFAULT '0',
@@ -269,7 +270,7 @@ CREATE TABLE `log_ipas_status_temp` (
   `usim` varchar(32) NOT NULL DEFAULT '',
   `ip` int(10) unsigned NOT NULL DEFAULT '0',
   `recv_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  KEY `ix_log_ipas_status_filename` (`filename`(255))
+  KEY `ix_log_ipas_status_filename` (`file_name`(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -421,4 +422,4 @@ CREATE TABLE `sys_config` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-04-15 12:01:51
+-- Dump completed on 2018-04-15 22:02:40
