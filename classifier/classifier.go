@@ -431,12 +431,14 @@ func (c *Classifier) updateIpasStatus(fp string) error {
 			updated = values(updated);
 	`
 	rs, err := c.engine.DB.Exec(query, name)
-	rowsAffected, _ := rs.RowsAffected()
-	log.Debugf("table=%s, affected_rows=%d", "status", rowsAffected)
 	if err == nil {
+		rowsAffected, _ := rs.RowsAffected()
+		log.Debugf("table=%s, affected_rows=%d", "status", rowsAffected)
 		// 테이블 비우기
 		query = "delete from log_ipas_status_temp where filename = ?"
 		c.engine.DB.Exec(query)
+	} else {
+		return err
 	}
 
 	return err
