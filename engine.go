@@ -117,7 +117,6 @@ func (e *Engine) initLogger(verbose bool) error {
 	// Set log level
 	if e.debug {
 		log.SetLevel(log.DebugLevel)
-		//orm.Debug = false
 	}
 
 	if verbose {
