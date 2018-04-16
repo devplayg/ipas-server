@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/devplayg/golibs/secureconfig"
 	"github.com/devplayg/ipas-server"
+	"github.com/devplayg/ipas-server/calculator"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"runtime"
@@ -23,7 +24,10 @@ func main() {
 		debug     = ipasserver.CmdFlags.Bool("debug", false, "Debug")
 		verbose   = ipasserver.CmdFlags.Bool("v", false, "Verbose")
 		setConfig = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
-		//worker    = ipasserver.CmdFlags.Int("worker", runtime.NumCPU(), "Worker count")
+		top       = ipasserver.CmdFlags.Int("top", 100, "Top N")
+		interval  = ipasserver.CmdFlags.Int64("i", 2000, "Interval(ms)")
+		date      = ipasserver.CmdFlags.String("date", "", "Target date")
+		report    = ipasserver.CmdFlags.String("report", "", "Period report(StartDate,EndDate,MarkDate)")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -57,13 +61,13 @@ func main() {
 	}
 
 	// 데이터 분류 시작
-	//statusCalculator := calculator.NewCalculator(engine, "status")
-	//clf := classifier.NewClassifier(engine, *worker)
-	//if err := statusCalculator.Start(); err != nil {
-	//	log.Fatal(err)
-	//}
-	//defer clf.Stop()
+	cal := calculator.NewCalculator(engine, *top, *interval, *date, *report)
+	if err := cal.Start(); err != nil {
+		log.Fatal(err)
+	}
 
 	// 종료 시그널 대기
-	ipasserver.WaitForSignals()
+	if len(*date) < 1 && len(*report) < 1 {
+		ipasserver.WaitForSignals()
+	}
 }
