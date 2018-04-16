@@ -33,7 +33,6 @@ func init() {
 
 type Engine struct {
 	ConfigPath  string
-	Interval    int64
 	Config      map[string]string
 	appName     string
 	debug       bool
