@@ -22,3 +22,12 @@ func NewEvent(eventType int, ipStr string) *Event {
 		SourceIP:  ipStr,
 	}
 }
+
+
+type IpasLog struct {
+	OrgId     int
+	GroupId   int
+	EventType int
+	EquipId   string
+	Targets   string
+}
