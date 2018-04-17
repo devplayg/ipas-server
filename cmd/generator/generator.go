@@ -39,7 +39,7 @@ func main() {
 
 	start := time.Now()
 	for i := 0; i < *count; i++ {
-		t := time.Now()
+		t := time.Now().Add(time.Duration(fake.Year(1, 3600)) * time.Second * -1)
 		dt := t.Format(ipasserver.DateDefault)
 		orgcode := getRandomOrgCode()
 		srcid := getRandomTag(orgcode)
