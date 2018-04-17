@@ -2,6 +2,7 @@ package calculator
 
 import (
 	"github.com/devplayg/ipas-server"
+	"github.com/devplayg/ipas-server/objs"
 	log "github.com/sirupsen/logrus"
 	"strings"
 	"sync"
@@ -26,7 +27,25 @@ type Calculator struct {
 	interval int64
 	date     string
 	report   string
-	assetMap map[int][]int
+	//assetMap map[int][]int
+
+	//name         string
+	//rows         interface{}
+	//rank         stats.DataRank
+	statsMap objs.DataMap
+	_rank        objs.DataRank
+	memberAssets map[int][]int
+	mutex        *sync.RWMutex
+	//engine       *mserver.Engine
+	//r            *mux.Router
+	//o            orm.Ormer
+	//date         *StatsDate
+	//top          int
+
+	//f.dataMap = make(stats.DataMap)
+	//f._rank = make(stats.DataRank)
+	//f.dataMap[RootId] = make(map[string]map[interface{}]int64)
+	//f._rank[RootId] = make(map[string]stats.ItemList)
 }
 
 func NewCalculator(engine *ipasserver.Engine, top int, interval int64, date, report string) *Calculator {
@@ -98,7 +117,7 @@ func (c *Calculator) Start() error {
 
 func (c *Calculator) calculate(from, to, mark string) error {
 	var err error
-	c.assetMap, err = c.getMemberAssets()
+	c.memberAssets, err = c.getMemberAssets()
 	if err != nil {
 		log.Error(err)
 	}
@@ -106,10 +125,16 @@ func (c *Calculator) calculate(from, to, mark string) error {
 	start := time.Now()
 	log.Debugf("Calculating statistics, [%s ~ %s] Mark as %s", from, to, mark)
 	wg := new(sync.WaitGroup)
+
+	// 이벤트 통계 산출
 	wg.Add(1)
 	go c.calculateEvents(wg, from, to, mark)
+
+	// 상태정보 통계 산출
 	wg.Add(1)
 	go c.calculateStatus(wg, from, to, mark)
+
+	// 위 두 개의 통계 작업이 완료될 때까지 대기
 	wg.Wait()
 
 	// Write signature
@@ -147,7 +172,7 @@ func (c *Calculator) calculateEvents(wg *sync.WaitGroup, from, to, mark string) 
 		if err != nil {
 			log.Error(err)
 		}
-
+		//spew.Dump(e)
 		//logs = append(logs, e)
 		//log.Debugf("%s\t%s", equipId, targets)
 	}
@@ -168,65 +193,64 @@ func (c *Calculator) calculateStatus(wg *sync.WaitGroup, from, to, mark string) 
 
 func (c *Calculator) addToStats(r *IpasEvent, category string, val interface{}) error {
 
-//	// By sensor
-//	if r.SensorId > 0 {
-//		if _, ok := f.dataMap[r.SensorId]; !ok {
-//			f.dataMap[r.SensorId] = make(map[string]map[interface{}]int64)
-//			f._rank[r.SensorId] = make(map[string]stats.ItemList)
-//		}
-//		if _, ok := f.dataMap[r.SensorId][category]; !ok {
-//			f.dataMap[r.SensorId][category] = make(map[interface{}]int64)
-//			f._rank[r.SensorId][category] = nil
-//		}
-//		f.dataMap[r.SensorId][category][val] += 1
-//	}
-//
-//	// By group
-//	if r.IppoolSrcGcode > 0 {
-//		if _, ok := f.dataMap[r.IppoolSrcGcode]; !ok {
-//			f.dataMap[r.IppoolSrcGcode] = make(map[string]map[interface{}]int64)
-//			f._rank[r.IppoolSrcGcode] = make(map[string]stats.ItemList)
-//		}
-//		if _, ok := f.dataMap[r.IppoolSrcGcode][category]; !ok {
-//			f.dataMap[r.IppoolSrcGcode][category] = make(map[interface{}]int64)
-//			f._rank[r.IppoolSrcGcode][category] = nil
-//		}
-//		f.dataMap[r.IppoolSrcGcode][category][val] += 1
-//	}
-//
-//	// To all
-//	if _, ok := f.dataMap[RootId][category]; !ok {
-//		f.dataMap[RootId][category] = make(map[interface{}]int64)
-//		f._rank[RootId][category] = nil
-//	}
-//	f.dataMap[RootId][category][val] += 1
-//
-//	// By member
-//	if arr, ok := f.memberAssets[r.IppoolSrcGcode]; ok {
-//		for _, memberId := range arr {
-//			id := memberId * -1
-//
-//			if _, ok := f.dataMap[id]; !ok {
-//				f.dataMap[id] = make(map[string]map[interface{}]int64)
-//				f._rank[id] = make(map[string]stats.ItemList)
-//			}
-//			if _, ok := f.dataMap[id][category]; !ok {
-//				f.dataMap[id][category] = make(map[interface{}]int64)
-//				f._rank[id][category] = nil
-//			}
-//			f.dataMap[id][category][val] += 1
-//		}
-//	}
-//
+	//	// By sensor
+	//	if r.SensorId > 0 {
+	//		if _, ok := f.dataMap[r.SensorId]; !ok {
+	//			f.dataMap[r.SensorId] = make(map[string]map[interface{}]int64)
+	//			f._rank[r.SensorId] = make(map[string]stats.ItemList)
+	//		}
+	//		if _, ok := f.dataMap[r.SensorId][category]; !ok {
+	//			f.dataMap[r.SensorId][category] = make(map[interface{}]int64)
+	//			f._rank[r.SensorId][category] = nil
+	//		}
+	//		f.dataMap[r.SensorId][category][val] += 1
+	//	}
+	//
+	//	// By group
+	//	if r.IppoolSrcGcode > 0 {
+	//		if _, ok := f.dataMap[r.IppoolSrcGcode]; !ok {
+	//			f.dataMap[r.IppoolSrcGcode] = make(map[string]map[interface{}]int64)
+	//			f._rank[r.IppoolSrcGcode] = make(map[string]stats.ItemList)
+	//		}
+	//		if _, ok := f.dataMap[r.IppoolSrcGcode][category]; !ok {
+	//			f.dataMap[r.IppoolSrcGcode][category] = make(map[interface{}]int64)
+	//			f._rank[r.IppoolSrcGcode][category] = nil
+	//		}
+	//		f.dataMap[r.IppoolSrcGcode][category][val] += 1
+	//	}
+	//
+	//	// To all
+	//	if _, ok := f.dataMap[RootId][category]; !ok {
+	//		f.dataMap[RootId][category] = make(map[interface{}]int64)
+	//		f._rank[RootId][category] = nil
+	//	}
+	//	f.dataMap[RootId][category][val] += 1
+	//
+	//	// By member
+	//	if arr, ok := f.memberAssets[r.IppoolSrcGcode]; ok {
+	//		for _, memberId := range arr {
+	//			id := memberId * -1
+	//
+	//			if _, ok := f.dataMap[id]; !ok {
+	//				f.dataMap[id] = make(map[string]map[interface{}]int64)
+	//				f._rank[id] = make(map[string]stats.ItemList)
+	//			}
+	//			if _, ok := f.dataMap[id][category]; !ok {
+	//				f.dataMap[id][category] = make(map[interface{}]int64)
+	//				f._rank[id][category] = nil
+	//			}
+	//			f.dataMap[id][category][val] += 1
+	//		}
+	//	}
+	//
 	return nil
 }
-
 
 func (c *Calculator) getMemberAssets() (map[int][]int, error) {
 	m := make(map[int][]int)
 	var (
 		memberId int
-		assetId int
+		assetId  int
 	)
 	query := `
 		select member_id, asset_id
