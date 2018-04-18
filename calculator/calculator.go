@@ -3,46 +3,31 @@ package calculator
 import (
 	"fmt"
 	"github.com/devplayg/ipas-server"
-	//"github.com/devplayg/ipas-server/objs"
 	log "github.com/sirupsen/logrus"
 	"strings"
 	"sync"
 	"time"
-)
-
-type IpasEvent struct {
-	orgId     int
-	groupId   int
-	eventType int
-	equipId   string
-	targets   string
-}
-
-const (
-	RootId = -1
+	"github.com/devplayg/ipas-server/objs"
 )
 
 type Calculator struct {
-	engine   *ipasserver.Engine
-	top      int
-	interval int64
-	date     string
-	report   string
-	//dataMap         objs.DataMap
-	//_rank           objs.DataRank
+	engine          *ipasserver.Engine // 엔진
+	top             int                // Top N 순위
+	interval        int64              // 실행 주기(실시간 모드에서 사용)
+	calType         int                // 산출기 타입(실시간, 특정날짜, 특정기간)
+	targetDate      string             // 대상 날짜
 	memberAssets    map[int][]int
-	mutex           *sync.RWMutex
 	eventStatsKeys  []string
 	statusStatsKeys []string
 }
 
-func NewCalculator(engine *ipasserver.Engine, top int, interval int64, date, report string) *Calculator {
+func NewCalculator(engine *ipasserver.Engine, top int, interval int64, calType int, targetDate string) *Calculator {
 	return &Calculator{
-		engine:   engine,
-		top:      top,
-		interval: interval,
-		date:     date,
-		report:   report,
+		engine:     engine,
+		top:        top,
+		interval:   interval,
+		calType:    calType,
+		targetDate: targetDate,
 	}
 }
 
@@ -89,12 +74,12 @@ func (c *Calculator) Start() error {
 		log.Fatal(err)
 	}
 
-	if len(c.date) > 0 { // 지정한 날짜에 대한 통계
-		t, err := time.Parse("2006-01-02", c.date)
+	if c.calType == objs.SpecificDateCalculator { // 지정한 날짜에 대한 통계
+		t, err := time.Parse("2006-01-02", c.targetDate)
 		if err != nil {
 			return err
 		}
-		log.Debugf("Calculating statistics for %s", c.date)
+		log.Debugf("Calculating statistics for %s", c.targetDate)
 
 		// 기존 통계 삭제
 		if err := c.removeStats(t.Format("2006-01-02")); err != nil {
@@ -109,7 +94,7 @@ func (c *Calculator) Start() error {
 		); err != nil {
 			return err
 		}
-	} else if len(c.report) > 0 { // 특정 기간에 대한 통계 (추후 개발)
+	} else if c.calType == objs.DateRangeCalculator { // 특정 기간에 대한 통계 (추후 개발)
 		//timeArr := strings.Split(c.report, ",")
 		//from, err := time.Parse("2006-01-02", timeArr[0])
 		//if err != nil {
@@ -130,7 +115,8 @@ func (c *Calculator) Start() error {
 		//	mark.Format(ipasserver.DateDefault),
 		//)
 
-	} else { // 실시간 통계(당일)
+	} else if c.calType == objs.RealtimeCalculator { // 실시간 통계(당일)
+		log.Debug("Calculating statistics for realtime")
 		go func() {
 			for {
 				t := time.Now()
@@ -168,19 +154,18 @@ func (c *Calculator) calculate(from, to, mark string) error {
 
 	start := time.Now()
 	log.Debugf("Calculating statistics(%s ~ %s) will be marked as %s", from, to, mark)
-	//wg := new(sync.WaitGroup)
-	//
-	//// 이벤트 통계 산출
-	//wg.Add(1)
-	//go c.calculateEvents(wg, from, to)
-	//
-	//// 상태정보 통계 산출
-	//wg.Add(1)
-	//go c.calculateStatus(wg, from, to)
-	//
-	//// 위 두 개의 통계 작업이 완료될 때까지 대기
-	//wg.Wait()
+	wg := new(sync.WaitGroup)
 
+	s1 := NewStats("event", c)
+	s2 := NewStats("status", c)
+	wg.Add(1)
+	go s1.Start(wg)
+	wg.Add(1)
+	go s2.Start(wg)
+
+	// 위 두 개의 통계 작업이 완료될 때까지 대기
+	wg.Wait()
+	log.Debug("done")
 	if len(mark) > 0 {
 		//
 	}
@@ -189,7 +174,7 @@ func (c *Calculator) calculate(from, to, mark string) error {
 	log.Debugf("Done. Execution time: %3.1f", time.Since(start).Seconds())
 	return nil
 }
-//
+
 //func (c *Calculator) calculateEvents(wg *sync.WaitGroup, from, to string) error {
 //	defer wg.Done()
 //	log.Debug("Calculating event..")
