@@ -29,3 +29,11 @@ func DetermineRankings(m map[interface{}]int64, top int) ItemList {
 		return list
 	}
 }
+
+const (
+	RealtimeCalculator     = 1
+	SpecificDateCalculator = 2
+	DateRangeCalculator    = 3
+
+	RootId = -1
+)

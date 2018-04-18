@@ -10,9 +10,9 @@ const (
 
 type Event struct {
 	Parsed    interface{} // 데이터
-	Received  time.Time              // 수신 시간
-	EventType int                    // 이벤트 타입
-	SourceIP  string                 // 요청 IP
+	Received  time.Time   // 수신 시간
+	EventType int         // 이벤트 타입
+	SourceIP  string      // 요청 IP
 }
 
 func NewEvent(eventType int, ipStr string) *Event {
@@ -22,7 +22,6 @@ func NewEvent(eventType int, ipStr string) *Event {
 		SourceIP:  ipStr,
 	}
 }
-
 
 type IpasLog struct {
 	OrgId     int

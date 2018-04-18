@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"runtime"
+	"github.com/devplayg/ipas-server/objs"
 )
 
 const (
@@ -20,14 +21,14 @@ func main() {
 
 	// 옵션 설정
 	var (
-		version   = ipasserver.CmdFlags.Bool("version", false, "Version")
-		debug     = ipasserver.CmdFlags.Bool("debug", false, "Debug")
-		verbose   = ipasserver.CmdFlags.Bool("v", false, "Verbose")
-		setConfig = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
-		top       = ipasserver.CmdFlags.Int("top", 5, "Top N")
-		interval  = ipasserver.CmdFlags.Int64("i", 2000, "Interval(ms)")
-		date      = ipasserver.CmdFlags.String("date", "", "Target date")
-		report    = ipasserver.CmdFlags.String("report", "", "Period report(StartDate,EndDate,MarkDate)")
+		version      = ipasserver.CmdFlags.Bool("version", false, "Version")
+		debug        = ipasserver.CmdFlags.Bool("debug", false, "Debug")
+		verbose      = ipasserver.CmdFlags.Bool("v", false, "Verbose")
+		setConfig    = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
+		top          = ipasserver.CmdFlags.Int("top", 5, "Top N")
+		interval     = ipasserver.CmdFlags.Int64("i", 2000, "Interval(ms)")
+		specificDate = ipasserver.CmdFlags.String("date", "", "Specific date")
+		dateRange    = ipasserver.CmdFlags.String("range", "", "Date range(StartDate,EndDate,MarkDate)")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -61,13 +62,24 @@ func main() {
 	}
 
 	// 데이터 분류 시작
-	cal := calculator.NewCalculator(engine, *top, *interval, *date, *report)
+	calType, targetDate := getCalculatorType(*specificDate, *dateRange)
+	cal := calculator.NewCalculator(engine, *top, *interval, calType, targetDate)
 	if err := cal.Start(); err != nil {
 		log.Fatal(err)
 	}
 
 	// 종료 시그널 대기
-	if len(*date) < 1 && len(*report) < 1 {
+	if calType == objs.RealtimeCalculator {
 		ipasserver.WaitForSignals()
+	}
+}
+
+func getCalculatorType(specificDate, dateRange string) (int, string) {
+	if len(specificDate) > 0 {
+		return objs.SpecificDateCalculator, specificDate
+	 } else if len(dateRange) > 0 {
+	 	return objs.DateRangeCalculator, dateRange
+	} else {
+		return objs.RealtimeCalculator, ""
 	}
 }
