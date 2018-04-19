@@ -41,26 +41,26 @@ func main() {
 	for i := 0; i < *count; i++ {
 		t := time.Now().Add(time.Duration(fake.Year(1, 3600)) * time.Second * -1)
 		dt := t.Format(ipasserver.DateDefault)
-		orgcode := getRandomOrgCode()
-		srcid := getRandomTag(orgcode)
+		cstid := getRandomOrgCode()
+		srcid := getRandomTag(cstid)
 		lat := getLatitude("kr")
 		lon := getLongitude("kr")
 		spd := strconv.Itoa(fake.Year(-1, 33))
 		snr := strconv.Itoa(fake.Year(0, 12))
 		ctn := fake.Phone()
-		sesid := fmt.Sprintf("%s_%s_1", srcid, t.Format("20060102150405"))
+		sesid := fmt.Sprintf("%s_%s", srcid, t.Format("20060102150405"))
 
 		// Status
 		values := url.Values{
-			"dt":      {dt},
-			"orgcode": {orgcode},
-			"srcid":   {srcid},
-			"lat":     {lat},
-			"lon":     {lon},
-			"spd":     {spd},
-			"snr":     {snr},
-			"ctn":     {ctn},
-			"sesid":   {sesid},
+			"dt":    {dt},
+			"cstid": {cstid},
+			"srcid": {srcid},
+			"lat":   {lat},
+			"lon":   {lon},
+			"spd":   {spd},
+			"snr":   {snr},
+			"ctn":   {ctn},
+			"sesid": {sesid},
 		}
 		_, err := http.PostForm("http://"+*addr+"/status", values)
 		if err != nil {
@@ -69,18 +69,18 @@ func main() {
 
 		// Event
 		values = url.Values{
-			"dt":      {dt},
-			"orgcode": {orgcode},
-			"srcid":   {srcid},
-			"dstid":   {getRandomTag(orgcode)},
-			"lat":     {lat},
-			"lon":     {lon},
-			"spd":     {spd},
-			"snr":     {snr},
-			"ctn":     {ctn},
-			"type":    {strconv.Itoa(NumberRange(1, 4))},
-			"dist":    {fake.DigitsN(1)},
-			"sesid":   {sesid},
+			"dt":    {dt},
+			"cstid": {cstid},
+			"srcid": {srcid},
+			"dstid": {getRandomTag(cstid)},
+			"lat":   {lat},
+			"lon":   {lon},
+			"spd":   {spd},
+			"snr":   {snr},
+			"ctn":   {ctn},
+			"type":  {strconv.Itoa(NumberRange(1, 4))},
+			"dist":  {fake.DigitsN(1)},
+			"sesid": {sesid},
 		}
 
 		_, err = http.PostForm("http://"+*addr+"/event", values)
@@ -90,7 +90,7 @@ func main() {
 
 	}
 	dur := time.Since(start).Seconds()
-	fmt.Printf("Time: %3.2f seconds, EPS: %3.1f\n", dur, (float64(*count)*2/dur))
+	fmt.Printf("Time: %3.2f seconds, EPS: %3.1f\n", dur, (float64(*count) * 2 / dur))
 }
 
 func getRandomOrgCode() string {
