@@ -58,18 +58,18 @@ func (s *Stacker) Start(errChan chan<- error) error {
 						r.EventType, //	0
 						r.SourceIP,  //	1
 						r.Received.Format(ipasserver.DateDefault), //	2
-						m["dt"],      //	3
-						m["sesid"],   //	4
-						m["orgcode"], //	5
-						m["srcid"],   //	6
-						m["dstid"],   //	7
-						m["lat"],     //	8
-						m["lon"],     //	9
-						m["spd"],     //	10
-						m["snr"],     //	11
-						m["ctn"],     //	12
-						m["type"],    //	13
-						m["dist"],    //	14
+						m["dt"],    //	3
+						m["sesid"], //	4
+						m["cstid"], //	5
+						m["srcid"], //	6
+						m["dstid"], //	7
+						m["lat"],   //	8
+						m["lon"],   //	9
+						m["spd"],   //	10
+						m["snr"],   //	11
+						m["ctn"],   //	12
+						m["type"],  //	13
+						m["dist"],  //	14
 					)
 					if _, err := tmpFile.WriteString(line); err != nil {
 						errChan <- err
@@ -81,15 +81,15 @@ func (s *Stacker) Start(errChan chan<- error) error {
 						r.EventType, // 0
 						r.SourceIP,  // 1
 						r.Received.Format(ipasserver.DateDefault), // 2
-						m["dt"],      //	3
-						m["sesid"],   //	4
-						m["orgcode"], //	5
-						m["srcid"],   //	6
-						m["lat"],     //	7
-						m["lon"],     //	8
-						m["spd"],     //	9
-						m["snr"],     //	10
-						m["ctn"],     //	11
+						m["dt"],    //	3
+						m["sesid"], //	4
+						m["cstid"], //	5
+						m["srcid"], //	6
+						m["lat"],   //	7
+						m["lon"],   //	8
+						m["spd"],   //	9
+						m["snr"],   //	10
+						m["ctn"],   //	11
 					)
 
 					if _, err := tmpFile.WriteString(line); err != nil {
