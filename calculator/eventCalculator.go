@@ -7,6 +7,7 @@ import (
 	"os"
 	"io/ioutil"
 	"fmt"
+	"time"
 )
 
 type Stats interface {
@@ -54,10 +55,9 @@ func NewEventStats(calculator *Calculator, from, to, mark string) *eventStatsCal
 	}
 }
 
-func (c *eventStatsCalculator) Start(wg *sync.WaitGroup) error {
+func (c *eventStatsCalculator) Start(wg *sync.WaitGroup)  error {
 	defer wg.Done()
-	log.Debug("eventStats start")
-
+	start := time.Now()
 	if err := c.produceStats(); err != nil {
 		log.Error(err)
 		return err
@@ -67,7 +67,7 @@ func (c *eventStatsCalculator) Start(wg *sync.WaitGroup) error {
 		log.Error(err)
 		return err
 	}
-
+	log.Debugf("cal_type=%d, stats_type=%d, exec_time=%3.1f", c.calculator.calType, StatsEvent, time.Since(start).Seconds())
 	return nil
 }
 
@@ -213,15 +213,12 @@ func (c *eventStatsCalculator) insert() error {
 		rs, err := c.calculator.engine.DB.Exec(query)
 		if err == nil {
 			num, _ := rs.RowsAffected()
-			log.Debugf("affectedRows=%d, category=%s", num, category)
+			log.Debugf("cal_type=%d, category=%s, affected_rows=%d", c.calculator.calType, category, num)
 		} else {
 			log.Debug(err)
 			return err
 		}
 	}
-
-	return nil
-
 	return nil
 }
 
@@ -252,6 +249,7 @@ func NewStatusStats(calculator *Calculator, from, to, mark string) *statusStatsC
 
 func (c *statusStatsCalculator) Start(wg *sync.WaitGroup) error {
 	defer wg.Done()
-	log.Debug("statusStats start")
+	start := time.Now()
+	log.Debugf("cal_type=%d, stats_type=%d, exec_time=%3.1f", c.calculator.calType, StatsStatus, time.Since(start).Seconds())
 	return nil
 }

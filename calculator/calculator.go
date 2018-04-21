@@ -50,7 +50,6 @@ func (c *Calculator) removeStats(date string, isToday bool) error {
 	}
 	from := date+" 00:00:00"
 	to := date+" 23:59:59"
-	log.Debugf("Delete statistical data from %s to %s", from , to)
 	for _, k := range append(c.eventTableKeys, c.statusTableKeys...) {
 		_, err := c.engine.DB.Exec(fmt.Sprintf(query, k), from, to)
 		if err != nil {
@@ -88,12 +87,12 @@ func (c *Calculator) Start() error {
 		log.Fatal(err)
 	}
 
-	if c.calType == objs.SpecificDateCalculator { // 지정한 날짜에 대한 통계
+	log.Debugf("cal_type=%d", c.calType)
+	if c.calType == objs.SpecificDateCalculator {
 		t, err := time.Parse("2006-01-02", c.targetDate)
 		if err != nil {
 			return err
 		}
-		log.Debugf("Calculating statistics for %s", c.targetDate)
 
 		// 기존 통계 삭제
 		if err := c.removeStats(t.Format("2006-01-02"), false); err != nil {
@@ -110,7 +109,7 @@ func (c *Calculator) Start() error {
 			log.Error(err)
 			return err
 		}
-	} else if c.calType == objs.DateRangeCalculator { // 특정 기간에 대한 통계 (추후 보고서 용도)
+	} else if c.calType == objs.DateRangeCalculator {
 		//timeArr := strings.Split(c.report, ",")
 		//from, err := time.Parse("2006-01-02", timeArr[0])
 		//if err != nil {
@@ -132,7 +131,6 @@ func (c *Calculator) Start() error {
 		//)
 
 	} else if c.calType == objs.RealtimeCalculator { // 실시간 통계(당일)
-		log.Debug("Calculating statistics for realtime")
 		go func() {
 			for {
 				t := time.Now()
@@ -153,7 +151,6 @@ func (c *Calculator) Start() error {
 				} else {
 					log.Error(err)
 				}
-				log.Debug("sleep..")
 				time.Sleep(time.Duration(c.interval) * time.Millisecond)
 			}
 		}()
@@ -172,25 +169,20 @@ func (c *Calculator) calculate(from, to, mark string) error {
 	}
 
 	start := time.Now()
-	log.Debugf("Calculating statistics(%s ~ %s) will be marked as %s", from, to, mark)
+	log.Debugf("cal_type=%d, stats_from=%s, stats_to=%s, stats_mark=%s", c.calType, from, to, mark)
 	wg := new(sync.WaitGroup)
 
 	s1 := NewStats(c, StatsEvent, from, to, mark)  // event calculator
 	s2 := NewStats(c, StatsStatus, from, to, mark) // status calculator
+
 	wg.Add(1)
 	go s1.Start(wg)
 	wg.Add(1)
 	go s2.Start(wg)
 
-	// 위 두 개의 통계 작업이 완료될 때까지 대기
+	// 통계산출 완료까지 대기
 	wg.Wait()
-
-	if len(mark) > 0 {
-		//
-	}
-
-	// Write signature
-	log.Debugf("Done. Execution time: %3.1f", time.Since(start).Seconds())
+	log.Debugf("cal_type=%d, total_exec_time=%3.1f",c.calType, time.Since(start).Seconds())
 	return nil
 }
 
@@ -231,30 +223,3 @@ func (c *Calculator) getMemberAssets() (map[int][]int, error) {
 
 	return m, nil
 }
-
-//func (c *Calculator) cleanStats(date string) error {
-	//query = "delete from "
-	//return nil
-	//rows, err := c.engine.DB.Query(query)
-	//if err != nil {
-	//	log.Error(err)
-	//}
-	//defer rows.Close()
-	//for rows.Next() {
-	//	err := rows.Scan(&memberId, &assetId)
-	//	if err != nil {
-	//		log.Error(err)
-	//	}
-	//
-	//	if _, ok := m[assetId]; !ok {
-	//		m[assetId] = make([]int, 0)
-	//	}
-	//	m[assetId] = append(m[assetId], memberId)
-	//}
-	//err = rows.Err()
-	//if err != nil {
-	//	log.Error(err)
-	//}
-	//
-	//return m, nil
-//}
