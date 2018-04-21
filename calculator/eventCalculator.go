@@ -1,12 +1,12 @@
 package calculator
 
 import (
+	"fmt"
 	"github.com/devplayg/ipas-server/objs"
 	log "github.com/sirupsen/logrus"
-	"sync"
-	"os"
 	"io/ioutil"
-	"fmt"
+	"os"
+	"sync"
 	"time"
 )
 
@@ -55,7 +55,7 @@ func NewEventStats(calculator *Calculator, from, to, mark string) *eventStatsCal
 	}
 }
 
-func (c *eventStatsCalculator) Start(wg *sync.WaitGroup)  error {
+func (c *eventStatsCalculator) Start(wg *sync.WaitGroup) error {
 	defer wg.Done()
 	start := time.Now()
 	if err := c.produceStats(); err != nil {
@@ -206,10 +206,7 @@ func (c *eventStatsCalculator) insert() error {
 
 	for category, file := range fm {
 		file.Close()
-
 		query := fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_%s", file.Name(), category)
-
-		//log.Debugf("Table: %s", query)
 		rs, err := c.calculator.engine.DB.Exec(query)
 		if err == nil {
 			num, _ := rs.RowsAffected()

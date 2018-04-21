@@ -4,10 +4,11 @@ import (
 	"github.com/devplayg/golibs/secureconfig"
 	"github.com/devplayg/ipas-server"
 	"github.com/devplayg/ipas-server/calculator"
+	"github.com/devplayg/ipas-server/objs"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"runtime"
-	"github.com/devplayg/ipas-server/objs"
+	"time"
 )
 
 const (
@@ -26,7 +27,7 @@ func main() {
 		verbose      = ipasserver.CmdFlags.Bool("v", false, "Verbose")
 		setConfig    = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
 		top          = ipasserver.CmdFlags.Int("top", 3, "Top N")
-		interval     = ipasserver.CmdFlags.Int64("i", 15000, "Interval(ms)")
+		interval     = ipasserver.CmdFlags.Int64("interval", 2000, "Interval(ms)")
 		specificDate = ipasserver.CmdFlags.String("date", "", "Specific date")
 		dateRange    = ipasserver.CmdFlags.String("range", "", "Date range(StartDate,EndDate,MarkDate)")
 	)
@@ -63,7 +64,8 @@ func main() {
 
 	// 통계산출 시작
 	calType, targetDate := getCalculatorType(*specificDate, *dateRange)
-	cal := calculator.NewCalculator(engine, *top, *interval, calType, targetDate)
+	dur := time.Duration(*interval) * time.Millisecond
+	cal := calculator.NewCalculator(engine, *top, dur, calType, targetDate)
 	if err := cal.Start(); err != nil {
 		log.Fatal(err)
 	}
@@ -78,8 +80,8 @@ func getCalculatorType(specificDate, dateRange string) (int, string) {
 	if len(specificDate) > 0 { // 특정 날짜에 대한 통계
 		return objs.SpecificDateCalculator, specificDate
 
-	 } else if len(dateRange) > 0 { // 특정 기간에 대한 통계
-	 	return objs.DateRangeCalculator, dateRange
+	} else if len(dateRange) > 0 { // 특정 기간에 대한 통계
+		return objs.DateRangeCalculator, dateRange
 	} else {
 		return objs.RealtimeCalculator, "" // 실시간 통계
 	}

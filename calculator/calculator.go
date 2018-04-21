@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"github.com/devplayg/ipas-server"
 	"github.com/devplayg/ipas-server/objs"
+	"github.com/devplayg/mserver"
 	log "github.com/sirupsen/logrus"
+	"path/filepath"
 	"sync"
 	"time"
-	"path/filepath"
-	"github.com/devplayg/mserver"
 )
 
 const (
@@ -21,24 +21,24 @@ const (
 type Calculator struct {
 	engine          *ipasserver.Engine // 엔진
 	top             int                // Top N 순위
-	interval        int64              // 실행 주기(실시간 모드에서 사용)
+	interval        time.Duration      // 실행 주기(실시간 모드에서 사용)
 	calType         int                // 산출기 타입(실시간, 특정날짜, 특정기간)
 	targetDate      string             // 대상 날짜
 	memberAssets    map[int][]int
 	eventTableKeys  []string
 	statusTableKeys []string
-	tmpDir string
+	tmpDir          string
 }
 
-func NewCalculator(engine *ipasserver.Engine, top int, interval int64, calType int, targetDate string) *Calculator {
+func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, calType int, targetDate string) *Calculator {
 	return &Calculator{
-		engine:         engine,
-		top:            top,
-		interval:       interval,
-		calType:        calType,
-		targetDate:     targetDate,
-		tmpDir: filepath.Join(engine.ProcessDir, "tmp"),
-		eventTableKeys: []string{"eventtype", "srctag", "dsttag"},
+		engine:          engine,
+		top:             top,
+		interval:        interval,
+		calType:         calType,
+		targetDate:      targetDate,
+		tmpDir:          filepath.Join(engine.ProcessDir, "tmp"),
+		eventTableKeys:  []string{"eventtype", "srctag", "dsttag"},
 		statusTableKeys: []string{},
 	}
 }
@@ -48,8 +48,8 @@ func (c *Calculator) removeStats(date string, isToday bool) error {
 	if isToday {
 		query += " and date <> (select value_s from sys_config where section = 'stats' and keyword = 'last_updated')"
 	}
-	from := date+" 00:00:00"
-	to := date+" 23:59:59"
+	from := date + " 00:00:00"
+	to := date + " 23:59:59"
 	for _, k := range append(c.eventTableKeys, c.statusTableKeys...) {
 		_, err := c.engine.DB.Exec(fmt.Sprintf(query, k), from, to)
 		if err != nil {
@@ -87,7 +87,7 @@ func (c *Calculator) Start() error {
 		log.Fatal(err)
 	}
 
-	log.Debugf("cal_type=%d", c.calType)
+	log.Debugf("cal_type=%d, inverval=%d(ms)", c.calType, c.interval)
 	if c.calType == objs.SpecificDateCalculator {
 		t, err := time.Parse("2006-01-02", c.targetDate)
 		if err != nil {
@@ -151,7 +151,7 @@ func (c *Calculator) Start() error {
 				} else {
 					log.Error(err)
 				}
-				time.Sleep(time.Duration(c.interval) * time.Millisecond)
+				time.Sleep(c.interval)
 			}
 		}()
 	}
@@ -182,11 +182,9 @@ func (c *Calculator) calculate(from, to, mark string) error {
 
 	// 통계산출 완료까지 대기
 	wg.Wait()
-	log.Debugf("cal_type=%d, total_exec_time=%3.1f",c.calType, time.Since(start).Seconds())
+	log.Debugf("cal_type=%d, total_exec_time=%3.1f", c.calType, time.Since(start).Seconds())
 	return nil
 }
-
-
 
 // 사용자 자산 조회
 func (c *Calculator) getMemberAssets() (map[int][]int, error) {
