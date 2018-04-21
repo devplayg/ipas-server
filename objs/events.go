@@ -23,7 +23,7 @@ func NewEvent(eventType int, ipStr string) *Event {
 	}
 }
 
-type IpasLog struct {
+type IpasEvent struct {
 	OrgId     int
 	GroupId   int
 	EventType int

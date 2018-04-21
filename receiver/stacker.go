@@ -116,7 +116,7 @@ func (s *Stacker) Start(errChan chan<- error) error {
 		for {
 			select {
 			case event := <-s.c:
-				log.Debugf("### GOT[%d]: %s", event.EventType, event.Received.Format(ipasserver.DateDefault))
+				//log.Debugf("### GOT[%d]: %s", event.EventType, event.Received.Format(ipasserver.DateDefault))
 				//spew.Dump(event)
 				batch = append(batch, event)
 				if len(batch) == 1 {
@@ -129,7 +129,7 @@ func (s *Stacker) Start(errChan chan<- error) error {
 				}
 			case <-timer.C:
 				log.Debugf("### TIMEOUT")
-				stats.Add("batchTimeout", 1)
+				//stats.Add("batchTimeout", 1)
 				save()
 			}
 		}

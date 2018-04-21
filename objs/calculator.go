@@ -35,5 +35,4 @@ const (
 	SpecificDateCalculator = 2
 	DateRangeCalculator    = 3
 
-	RootId = -1
 )
