@@ -178,6 +178,24 @@ func (e *Engine) InitDatabase() error {
 	return nil
 }
 
+
+func (e *Engine) UpdateConfig(section, keyword, value_s string, value_n int) error {
+	query := `
+		insert into sys_config(section, keyword, value_s, value_n, updated)
+		values(?, ?, ?, ?, now())
+		on duplicate key update
+			value_s = values(value_s),
+			value_n = values(value_n),
+			updated = values(updated)
+	`
+	_, err := e.DB.Exec(query, section, keyword, value_s, value_n)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
 func WaitForSignals() {
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
@@ -203,4 +221,3 @@ func GetProcessName() string {
 func GetEncryptionKey() []byte {
 	return encKey
 }
-

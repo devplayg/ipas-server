@@ -3,11 +3,19 @@ package calculator
 import (
 	"fmt"
 	"github.com/devplayg/ipas-server"
+	"github.com/devplayg/ipas-server/objs"
 	log "github.com/sirupsen/logrus"
-	"strings"
 	"sync"
 	"time"
-	"github.com/devplayg/ipas-server/objs"
+	"path/filepath"
+	"github.com/devplayg/mserver"
+)
+
+const (
+	RootId = -1
+
+	StatsEvent  = 1
+	StatsStatus = 2
 )
 
 type Calculator struct {
@@ -17,30 +25,39 @@ type Calculator struct {
 	calType         int                // 산출기 타입(실시간, 특정날짜, 특정기간)
 	targetDate      string             // 대상 날짜
 	memberAssets    map[int][]int
-	eventStatsKeys  []string
-	statusStatsKeys []string
+	eventTableKeys  []string
+	statusTableKeys []string
+	tmpDir string
 }
 
 func NewCalculator(engine *ipasserver.Engine, top int, interval int64, calType int, targetDate string) *Calculator {
 	return &Calculator{
-		engine:     engine,
-		top:        top,
-		interval:   interval,
-		calType:    calType,
-		targetDate: targetDate,
+		engine:         engine,
+		top:            top,
+		interval:       interval,
+		calType:        calType,
+		targetDate:     targetDate,
+		tmpDir: filepath.Join(engine.ProcessDir, "tmp"),
+		eventTableKeys: []string{"eventtype", "srctag", "dsttag"},
+		statusTableKeys: []string{},
 	}
 }
 
-func (c *Calculator) removeStats(date string) error {
-	log.Debugf("Removing old stats for %s", date)
+func (c *Calculator) removeStats(date string, isToday bool) error {
 	query := "delete from stats_%s where date >= ? and date <= ?"
-	for _, k := range append(c.eventStatsKeys, c.statusStatsKeys...) {
-		_, err := c.engine.DB.Query(fmt.Sprintf(query, k), date+" 00:00:00", date+" 23:59:59")
+	if isToday {
+		query += " and date <> (select value_s from sys_config where section = 'stats' and keyword = 'last_updated')"
+	}
+	from := date+" 00:00:00"
+	to := date+" 23:59:59"
+	log.Debugf("Delete statistical data from %s to %s", from , to)
+	for _, k := range append(c.eventTableKeys, c.statusTableKeys...) {
+		_, err := c.engine.DB.Exec(fmt.Sprintf(query, k), from, to)
 		if err != nil {
+			log.Error(err)
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -54,9 +71,9 @@ func (c *Calculator) createTables() error {
 			rank int(10) unsigned NOT NULL,
 			KEY ix_stats_%s_date (date),
 			KEY ix_stats_%s_groupid (date,group_id)
-		) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8
 	`
-	for _, k := range append(c.eventStatsKeys, c.statusStatsKeys...) {
+	for _, k := range append(c.eventTableKeys, c.statusTableKeys...) {
 		_, err := c.engine.DB.Query(fmt.Sprintf(query, k, k, k, k))
 		if err != nil {
 			return err
@@ -67,9 +84,6 @@ func (c *Calculator) createTables() error {
 }
 
 func (c *Calculator) Start() error {
-	c.eventStatsKeys = strings.Split("eventtype,srctag,dsttag", ",")
-	//c.statusStatsKeys = nil
-
 	if err := c.createTables(); err != nil {
 		log.Fatal(err)
 	}
@@ -82,7 +96,8 @@ func (c *Calculator) Start() error {
 		log.Debugf("Calculating statistics for %s", c.targetDate)
 
 		// 기존 통계 삭제
-		if err := c.removeStats(t.Format("2006-01-02")); err != nil {
+		if err := c.removeStats(t.Format("2006-01-02"), false); err != nil {
+			log.Error(err)
 			return err
 		}
 
@@ -92,9 +107,10 @@ func (c *Calculator) Start() error {
 			t.Format("2006-01-02")+" 23:59:59",
 			t.Format("2006-01-02")+" 00:00:00",
 		); err != nil {
+			log.Error(err)
 			return err
 		}
-	} else if c.calType == objs.DateRangeCalculator { // 특정 기간에 대한 통계 (추후 개발)
+	} else if c.calType == objs.DateRangeCalculator { // 특정 기간에 대한 통계 (추후 보고서 용도)
 		//timeArr := strings.Split(c.report, ",")
 		//from, err := time.Parse("2006-01-02", timeArr[0])
 		//if err != nil {
@@ -121,14 +137,23 @@ func (c *Calculator) Start() error {
 			for {
 				t := time.Now()
 
-				err := c.calculate(
+				if err := c.calculate(
 					t.Format("2006-01-02")+" 00:00:00",
 					t.Format("2006-01-02")+" 23:59:59",
 					t.Format(ipasserver.DateDefault),
-				)
-				if err != nil {
+				); err == nil {
+					if err := c.engine.UpdateConfig("stats", "last_updated", t.Format(mserver.DateDefault), 0); err == nil {
+						// 기존 통계 삭제
+						if err := c.removeStats(t.Format("2006-01-02"), true); err != nil {
+							log.Error(err)
+						}
+					} else {
+						log.Error(err)
+					}
+				} else {
 					log.Error(err)
 				}
+				log.Debug("sleep..")
 				time.Sleep(time.Duration(c.interval) * time.Millisecond)
 			}
 		}()
@@ -146,18 +171,12 @@ func (c *Calculator) calculate(from, to, mark string) error {
 		log.Error(err)
 	}
 
-	// 데이터 초기화
-	//c.dataMap = make(objs.DataMap) // 데이터 맵
-	//c._rank = make(objs.DataRank)  // 순위
-	//c.dataMap[RootId] = make(map[string]map[interface{}]int64)
-	//c._rank[RootId] = make(map[string]objs.ItemList)
-
 	start := time.Now()
 	log.Debugf("Calculating statistics(%s ~ %s) will be marked as %s", from, to, mark)
 	wg := new(sync.WaitGroup)
 
-	s1 := NewStats("event", c)
-	s2 := NewStats("status", c)
+	s1 := NewStats(c, StatsEvent, from, to, mark)  // event calculator
+	s2 := NewStats(c, StatsStatus, from, to, mark) // status calculator
 	wg.Add(1)
 	go s1.Start(wg)
 	wg.Add(1)
@@ -165,7 +184,7 @@ func (c *Calculator) calculate(from, to, mark string) error {
 
 	// 위 두 개의 통계 작업이 완료될 때까지 대기
 	wg.Wait()
-	log.Debug("done")
+
 	if len(mark) > 0 {
 		//
 	}
@@ -175,120 +194,7 @@ func (c *Calculator) calculate(from, to, mark string) error {
 	return nil
 }
 
-//func (c *Calculator) calculateEvents(wg *sync.WaitGroup, from, to string) error {
-//	defer wg.Done()
-//	log.Debug("Calculating event..")
-//
-//	// 통계 구조체 초기화
-//	dataMap := make(objs.DataMap)
-//	rank := make(objs.DataRank)
-//	dataMap[RootId] = make(map[string]map[interface{}]int64)
-//	rank[RootId] = make(map[string]objs.ItemList)
-//
-//	// 데이터 조회
-//	query := `
-//		select org_id, group_id, event_type, equip_id, targets
-//		from log_ipas_event
-//		where date between ? and ?
-//		limit 100
-//	`
-//	rows, err := c.engine.DB.Query(query, from, to)
-//	if err != nil {
-//		log.Error(err)
-//	}
-//	defer rows.Close()
-//
-//	// 데이터 맵 생성
-//	for rows.Next() {
-//		e := IpasEvent{}
-//		err := rows.Scan(&e.orgId, &e.groupId, &e.eventType, &e.equipId, &e.targets)
-//		if err != nil {
-//			log.Error(err)
-//		}
-//		c.addToStats(&e, "eventtype", e.eventType)
-//		c.addToStats(&e, "srctag", e.equipId)
-//		c.addToStats(&e, "dsttag", e.targets)
-//	}
-//	err = rows.Err()
-//	if err != nil {
-//		log.Error(err)
-//	}
-//
-//	var rankAll = map[string]bool{
-//		"eventtype": true,
-//	}
-//	for id, m := range c.dataMap {
-//		for category, data := range m {
-//			if _, ok := rankAll[category]; ok {
-//				c._rank[id][category] = objs.DetermineRankings(data, 0)
-//			} else {
-//				c._rank[id][category] = objs.DetermineRankings(data, c.top)
-//			}
-//		}
-//	}
-//
-//	return nil
-//}
-//
-//func (c *Calculator) calculateStatus(wg *sync.WaitGroup, from, to string) error {
-//	defer wg.Done()
-//	log.Debug("Calculating status..")
-//	//time.Sleep(2 * time.Second)
-//	return nil
-//}
-//
-//func (c *Calculator) addToStats(r *IpasEvent, category string, val interface{}) error {
-//
-//	// 전체 통계
-//	if _, ok := c.dataMap[RootId][category]; !ok {
-//		c.dataMap[RootId][category] = make(map[interface{}]int64)
-//		c._rank[RootId][category] = nil
-//	}
-//	c.dataMap[RootId][category][val] += 1
-//
-//	// 기관 통계
-//	if _, ok := c.dataMap[r.orgId]; !ok {
-//		c.dataMap[r.orgId] = make(map[string]map[interface{}]int64)
-//		c._rank[r.orgId] = make(map[string]objs.ItemList)
-//	}
-//	if _, ok := c.dataMap[r.orgId][category]; !ok {
-//		c.dataMap[r.orgId][category] = make(map[interface{}]int64)
-//		c._rank[r.orgId][category] = nil
-//	}
-//	c.dataMap[r.orgId][category][val] += 1
-//
-//	// 그룹 통계
-//	if r.groupId > 0 {
-//		if _, ok := c.dataMap[r.groupId]; !ok {
-//			c.dataMap[r.groupId] = make(map[string]map[interface{}]int64)
-//			c._rank[r.groupId] = make(map[string]objs.ItemList)
-//		}
-//		if _, ok := c.dataMap[r.groupId][category]; !ok {
-//			c.dataMap[r.groupId][category] = make(map[interface{}]int64)
-//			c._rank[r.groupId][category] = nil
-//		}
-//		c.dataMap[r.groupId][category][val] += 1
-//	}
-//
-//	// 사용자 소속 권한의 전체 통계
-//	if arr, ok := c.memberAssets[r.orgId]; ok {
-//		for _, memberId := range arr {
-//			id := memberId * -1
-//
-//			if _, ok := c.dataMap[id]; !ok {
-//				c.dataMap[id] = make(map[string]map[interface{}]int64)
-//				c._rank[id] = make(map[string]objs.ItemList)
-//			}
-//			if _, ok := c.dataMap[id][category]; !ok {
-//				c.dataMap[id][category] = make(map[interface{}]int64)
-//				c._rank[id][category] = nil
-//			}
-//			c.dataMap[id][category][val] += 1
-//		}
-//	}
-//
-//	return nil
-//}
+
 
 // 사용자 자산 조회
 func (c *Calculator) getMemberAssets() (map[int][]int, error) {
@@ -326,9 +232,9 @@ func (c *Calculator) getMemberAssets() (map[int][]int, error) {
 	return m, nil
 }
 
-func (c *Calculator) cleanStats(date string) error {
+//func (c *Calculator) cleanStats(date string) error {
 	//query = "delete from "
-	return nil
+	//return nil
 	//rows, err := c.engine.DB.Query(query)
 	//if err != nil {
 	//	log.Error(err)
@@ -351,4 +257,4 @@ func (c *Calculator) cleanStats(date string) error {
 	//}
 	//
 	//return m, nil
-}
+//}

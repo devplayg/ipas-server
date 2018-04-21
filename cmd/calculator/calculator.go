@@ -25,7 +25,7 @@ func main() {
 		debug        = ipasserver.CmdFlags.Bool("debug", false, "Debug")
 		verbose      = ipasserver.CmdFlags.Bool("v", false, "Verbose")
 		setConfig    = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
-		top          = ipasserver.CmdFlags.Int("top", 5, "Top N")
+		top          = ipasserver.CmdFlags.Int("top", 3, "Top N")
 		interval     = ipasserver.CmdFlags.Int64("i", 2000, "Interval(ms)")
 		specificDate = ipasserver.CmdFlags.String("date", "", "Specific date")
 		dateRange    = ipasserver.CmdFlags.String("range", "", "Date range(StartDate,EndDate,MarkDate)")
