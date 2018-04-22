@@ -13,7 +13,7 @@ import (
 
 const (
 	AppName    = "IPAS Statistics Calculator"
-	AppVersion = "1.0.1804.11501"
+	AppVersion = "2.0.1804.32201"
 )
 
 func main() {

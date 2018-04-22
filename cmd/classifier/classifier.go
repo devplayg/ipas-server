@@ -11,7 +11,7 @@ import (
 
 const (
 	AppName    = "IPAS Classifier"
-	AppVersion = "1.0.1803.10801"
+	AppVersion = "2.0.1804.32201"
 )
 
 func main() {

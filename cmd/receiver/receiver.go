@@ -14,7 +14,7 @@ import (
 
 const (
 	AppName    = "IPAS Receiver"
-	AppVersion = "1.0.1804.11001"
+	AppVersion = "2.0.1804.32201"
 )
 
 func main() {
