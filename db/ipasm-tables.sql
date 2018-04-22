@@ -21,7 +21,6 @@
 
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `ipasm` /*!40100 DEFAULT CHARACTER SET utf8 */;
 -- mysqldump -u root --skip-add-drop-table -d -B -p  ipasm > ipasm-tables.sql
-
 USE `ipasm`;
 
 --
@@ -40,7 +39,7 @@ CREATE TABLE `adt_audit` (
   PRIMARY KEY (`audit_id`),
   KEY `ix_member_id` (`member_id`),
   KEY `ix_created` (`created`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -81,7 +80,7 @@ CREATE TABLE `ast_asset` (
   KEY `ix_ast_asset_class` (`class`),
   KEY `ix_ast_asset_class_type1` (`class`,`type1`),
   KEY `ix_ast_asset_name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -375,7 +374,7 @@ CREATE TABLE `mbr_member` (
   `last_updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`member_id`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -392,6 +391,57 @@ CREATE TABLE `mbr_password` (
   `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`member_id`),
   CONSTRAINT `fk_mbr_password_member_id` FOREIGN KEY (`member_id`) REFERENCES `mbr_member` (`member_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_dsttag`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_dsttag` (
+  `date` datetime NOT NULL,
+  `group_id` int(11) NOT NULL,
+  `dsttag` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_stats_dsttag_date` (`date`),
+  KEY `ix_stats_dsttag_groupid` (`date`,`group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_eventtype`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_eventtype` (
+  `date` datetime NOT NULL,
+  `group_id` int(11) NOT NULL,
+  `eventtype` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_stats_eventtype_date` (`date`),
+  KEY `ix_stats_eventtype_groupid` (`date`,`group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_srctag`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_srctag` (
+  `date` datetime NOT NULL,
+  `group_id` int(11) NOT NULL,
+  `srctag` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_stats_srctag_date` (`date`),
+  KEY `ix_stats_srctag_groupid` (`date`,`group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -422,4 +472,4 @@ CREATE TABLE `sys_config` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-04-15 22:02:40
+-- Dump completed on 2018-04-22 18:41:30

@@ -110,13 +110,10 @@ func (c *eventStatsCalculator) produceStats() error {
 
 	for id, m := range c.dataMap {
 		for category, data := range m {
-			//log.Debugf("# %s", category)
 			if isTotalStats, ok := c.tables[category]; ok {
 				if isTotalStats {
-					//log.Debugf("%s: rank - ALL", category)
 					c.dataRank[id][category] = objs.DetermineRankings(data, 0)
 				} else {
-					//log.Debugf("%s: rank - Top", category)
 					c.dataRank[id][category] = objs.DetermineRankings(data, c.calculator.top)
 				}
 			}
