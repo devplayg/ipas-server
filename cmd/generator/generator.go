@@ -15,7 +15,7 @@ import (
 
 const (
 	AppName    = "IPAS Data Generator"
-	AppVersion = "1.0.1804.11101"
+	AppVersion = "2.0.1804.32201"
 )
 
 var companies = []string{"us1", "us2", "kr1", "kr2", "jp1", "jp2"}
