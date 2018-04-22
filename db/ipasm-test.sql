@@ -15,7 +15,7 @@ truncate table ast_ipas;
 
 INSERT INTO `mbr_member` (`member_id`, `org_id`, `username`, `email`, `position`, `name`, `birth`, `nickname`, `zipcode`, `country`, `state`, `city`, `address1`, `address2`, `phone1`, `phone2`, `login_count`, `status`, `timezone`, `failed_login_count`, `last_success_login`, `last_failed_login`, `last_read_message`, `session_id`, `created`, `last_updated`) VALUES
  (1, 'root', 'kws', 'kws@kyungwoo.com', 1024, 'Kyungwoo admin.', '1970-01-01', '관리자', '93105', 'kr', 'Guro', 'Seoul', '', '', '010-1234-1234', '010-3456-3456', 244, 1, 'Asia/Seoul', 0, '2018-04-07 15:51:12', '2018-03-22 16:40:22', 0, '03af8bde2bb07cf78f3720a7175f0707', '2017-02-28 14:55:40', '2018-04-07 15:51:12')
-,(2, '', 'kws_kr', 'help_kr@kyungwoo.com', 0, '경우-KR', '1970-01-01', '', '', '', '', '', '', '', '', '', 0, 0, 'Asia/Seoul', 0, '1970-01-01 00:00:00', '1970-01-01 00:00:00', 0, '', '2018-04-07 15:53:26', '2018-04-07 15:55:25')
+,(2, '', 'kws_kr', 'help_kr@kyungwoo.com', 1, '경우-KR', '1970-01-01', '', '', '', '', '', '', '', '', '', 0, 0, 'Asia/Seoul', 0, '1970-01-01 00:00:00', '1970-01-01 00:00:00', 0, '', '2018-04-07 15:53:26', '2018-04-07 15:55:25')
 ,(3, '', 'kws_en', 'help_en@kyungwoo.com', 1, '경우-EN', '1970-01-01', '', '', '', '', '', '', '', '', '', 0, 0, '', 0, '1970-01-01 00:00:00', '1970-01-01 00:00:00', 0, '', '2018-04-07 15:54:00', '2018-04-07 15:54:00')
 ,(4, '', 'kws_jp', 'help_jp@kyungwoo.com', 1, '경우-JP', '1970-01-01', '', '', '', '', '', '', '', '', '', 0, 0, '', 0, '1970-01-01 00:00:00', '1970-01-01 00:00:00', 0, '', '2018-04-07 15:55:53', '2018-04-07 15:55:53')
 ;
