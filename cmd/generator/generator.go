@@ -25,7 +25,7 @@ func main() {
 	// 옵션 설정
 	var (
 		version = ipasserver.CmdFlags.Bool("version", false, "Version")
-		count   = ipasserver.CmdFlags.Int("count", 1, "Event count")
+		count   = ipasserver.CmdFlags.Int("count", 10, "Event count")
 		addr    = ipasserver.CmdFlags.String("addr", "127.0.0.1:8080", "Address")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
