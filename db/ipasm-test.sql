@@ -1,3 +1,14 @@
+
+
+create user 'devplayg'@'%' identified by 'devplayg';
+grant all privileges on ipasm.* to 'devplayg'@'%';
+create user 'devplayg'@'localhost' identified by 'devplayg123';
+grant all privileges on ipasm.* to 'devplayg'@'localhost';
+flush privileges;
+
+
+
+
 use ipasm;
 
 select * from log_ipas_event;

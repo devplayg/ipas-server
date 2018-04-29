@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/devplayg/ipas-server"
 	"github.com/devplayg/ipas-server/objs"
-	"github.com/devplayg/mserver"
 	log "github.com/sirupsen/logrus"
 	"path/filepath"
 	"sync"
@@ -140,7 +139,7 @@ func (c *Calculator) Start() error {
 					t.Format("2006-01-02")+" 23:59:59",
 					t.Format(ipasserver.DateDefault),
 				); err == nil {
-					if err := c.engine.UpdateConfig("stats", "last_updated", t.Format(mserver.DateDefault), 0); err == nil {
+					if err := c.engine.UpdateConfig("stats", "last_updated", t.Format(ipasserver.DateDefault), 0); err == nil {
 						// 기존 통계 삭제
 						if err := c.removeStats(t.Format("2006-01-02"), true); err != nil {
 							log.Error(err)
