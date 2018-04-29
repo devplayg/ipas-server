@@ -68,6 +68,10 @@ func main() {
 		}
 
 		// Event
+		eventType := NumberRange(1, 4)
+		if eventType == 3 {
+			spd = strconv.Itoa(NumberRange(13, 33))
+		}
 		values = url.Values{
 			"dt":    {dt},
 			"cstid": {cstid},
@@ -78,7 +82,7 @@ func main() {
 			"spd":   {spd},
 			"snr":   {snr},
 			"ctn":   {ctn},
-			"type":  {strconv.Itoa(NumberRange(1, 4))},
+			"type":  {strconv.Itoa(eventType)},
 			"dist":  {fake.DigitsN(1)},
 			"sesid": {sesid},
 		}
@@ -144,7 +148,7 @@ func getLongitude(loc string) string {
 
 	return fmt.Sprintf("%d.%d", i, d)
 }
-
-func float32ToString(f32 float32) string {
-	return strconv.FormatFloat(float64(f32), 'f', 6, 64)
-}
+//
+//func float32ToString(f32 float32) string {
+//	return strconv.FormatFloat(float64(f32), 'f', 6, 64)
+//}
