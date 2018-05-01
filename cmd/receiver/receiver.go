@@ -31,7 +31,7 @@ func main() {
 		batchSize       = ipasserver.CmdFlags.Int("batchsize", 1000, "Batch size")
 		batchTimeout    = ipasserver.CmdFlags.Int("batchtime", 1000, "Batch timeout, in milliseconds")
 		batchMaxPending = ipasserver.CmdFlags.Int("maxpending", 10000, "Maximum pending events")
-		httpport        = ipasserver.CmdFlags.String("port", ":8080", "HTTP port")
+		httpPort        = ipasserver.CmdFlags.String("port", ":8080", "HTTP port")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -74,7 +74,7 @@ func main() {
 	go drainLog("error batch", errChan)
 
 	// HTTP 라우터 시작
-	if err := startHttpServer(stacker, *httpport); err != nil {
+	if err := startHttpServer(stacker, *httpPort); err != nil {
 		log.Fatal(err)
 	}
 

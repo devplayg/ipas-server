@@ -94,7 +94,7 @@ func main() {
 
 	}
 	dur := time.Since(start).Seconds()
-	fmt.Printf("Time: %3.2f seconds, EPS: %3.1f\n", dur, (float64(*count) * 2 / dur))
+	fmt.Printf("Count: %d, Time: %3.2f seconds, EPS: %3.1f\n",*count*2, dur, (float64(*count) * 2 / dur))
 }
 
 func getRandomOrgCode() string {
