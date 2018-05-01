@@ -7,8 +7,8 @@ import (
 	"github.com/devplayg/golibs/network"
 	"github.com/devplayg/ipas-server"
 	"github.com/devplayg/ipas-server/objs"
-	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -21,43 +21,21 @@ import (
 
 type Classifier struct {
 	engine       *ipasserver.Engine
-	watcher      *fsnotify.Watcher
 	tmpDir       string
-	worker       int
+	batchSize    uint
 	assetOrgMap  sync.Map
 	assetIpasMap sync.Map
 }
 
-func NewClassifier(engine *ipasserver.Engine, worker int) *Classifier {
+func NewClassifier(engine *ipasserver.Engine, batchSize uint) *Classifier {
 	return &Classifier{
-		engine: engine,
-		worker: worker,
-		tmpDir: filepath.Join(engine.ProcessDir, "tmp"),
+		engine:    engine,
+		batchSize: batchSize,
+		tmpDir:    filepath.Join(engine.ProcessDir, "tmp"),
 	}
-}
-
-func (c *Classifier) Stop() error {
-	if c.watcher != nil {
-		if err := c.watcher.Close(); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (c *Classifier) loadOrgAssets(signal string) error {
-	if len(signal) > 0 {
-		defer func() {
-			log.Debug("reloading IPAS complete")
-			time.Sleep(300 * time.Microsecond)
-			err := os.Remove(signal)
-			if err != nil {
-				log.Warn(err)
-			}
-		}()
-	}
-
 	var (
 		code  string
 		orgId int
@@ -83,17 +61,6 @@ func (c *Classifier) loadOrgAssets(signal string) error {
 }
 
 func (c *Classifier) loadIpasAssets(signal string) error {
-	if len(signal) > 0 {
-		defer func() {
-			log.Debug("reloading assets complete")
-			time.Sleep(300 * time.Microsecond)
-			err := os.Remove(signal)
-			if err != nil {
-				log.Warn(err)
-			}
-		}()
-	}
-
 	var (
 		code    string
 		equipId string
@@ -125,7 +92,7 @@ func (c *Classifier) loadIpasAssets(signal string) error {
 	return nil
 }
 
-func (c *Classifier) Start() error {
+func (c *Classifier) Run() error {
 	// 기관자산 로딩
 	if err := c.loadOrgAssets(""); err != nil {
 		log.Error(err)
@@ -136,53 +103,30 @@ func (c *Classifier) Start() error {
 		log.Error(err)
 	}
 
-	ch := make(chan bool, c.worker)
-	var err error
-	c.watcher, err = fsnotify.NewWatcher()
-	if err != nil {
-		return err
-	}
-	go func() {
-		for {
-			select {
-			case event := <-c.watcher.Events:
-				if event.Op&fsnotify.Create == fsnotify.Create {
-					if strings.HasSuffix(event.Name, ".log") {
-						ch <- true
-						log.Debug("deal")
-						go c.deal(ch, event.Name) // 로그 분류
+	fieList := make([]string, 0)
 
-					} else if filepath.Base(event.Name) == "ast_ipas.sig" { // 자산(기관/그룹) 변경 이벤트
-						log.Debug("reload IPAS")
-						go c.loadIpasAssets(event.Name)
-
-					} else if filepath.Base(event.Name) == "ast_asset.sig" { // IPAS 자산 변경 이벤트
-						log.Debug("reloading assets")
-						go c.loadIpasAssets(event.Name)
-					}
-				}
-			case err := <-c.watcher.Errors:
-				if err != nil {
-					log.Error(err)
-				}
+	var i uint
+	dir := filepath.Join(c.engine.ProcessDir, "data")
+	filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+		if !f.IsDir() && f.Mode().IsRegular() && strings.HasSuffix(f.Name(), ".log") {
+			log.Debugf("Got it: %s", f.Name())
+			fieList = append(fieList, path)
+			i++
+			if i == c.batchSize {
+				return io.EOF
 			}
 		}
-	}()
+		return nil
+	})
 
-	err = c.watcher.Add(filepath.Join(c.engine.ProcessDir, "data"))
-	if err != nil {
-		return err
+	for _, f := range fieList {
+		c.deal(f)
 	}
 
 	return nil
 }
 
-func (c *Classifier) deal(ch <-chan bool, filename string) error {
-	time.Sleep(10 * time.Millisecond)
-	defer func() {
-		<-ch
-	}()
-
+func (c *Classifier) deal(filename string) error {
 	// 파일 열기
 	file, err := openFile(filename)
 	if err != nil {
@@ -191,14 +135,14 @@ func (c *Classifier) deal(ch <-chan bool, filename string) error {
 	}
 	defer func() {
 		file.Close()
-		if ! c.engine.IsDebug() {
+		if !c.engine.IsDebug() {
 			os.Remove(file.Name())
 		}
 	}()
 
 	// 데이터를 분류해서 파일에 기록
 	if err := c.classify(file); err != nil {
-		log.Error(err.Error())
+		log.Error(err)
 		os.Rename(file.Name(), file.Name()+".error")
 		return err
 	}
