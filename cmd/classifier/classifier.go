@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"runtime"
+	"time"
 )
 
 const (
@@ -23,8 +24,8 @@ func main() {
 		version   = ipasserver.CmdFlags.Bool("version", false, "Version")
 		debug     = ipasserver.CmdFlags.Bool("debug", false, "Debug")
 		verbose   = ipasserver.CmdFlags.Bool("v", false, "Verbose")
+		batchSize = ipasserver.CmdFlags.Uint("size", 3, "Batch size")
 		setConfig = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
-		worker    = ipasserver.CmdFlags.Int("worker", runtime.NumCPU(), "Worker count")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -58,11 +59,14 @@ func main() {
 	}
 
 	// 데이터 분류 시작
-	clf := classifier.NewClassifier(engine, *worker)
-	if err := clf.Start(); err != nil {
-		log.Fatal(err)
-	}
-	defer clf.Stop()
+	clf := classifier.NewClassifier(engine, *batchSize)
+	go func() {
+		for {
+			clf.Run()
+			time.Sleep(2 * time.Second)
+		}
+
+	}()
 
 	// 종료 시그널 대기
 	ipasserver.WaitForSignals()
