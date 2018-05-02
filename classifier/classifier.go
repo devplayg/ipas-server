@@ -103,14 +103,14 @@ func (c *Classifier) Run() error {
 		log.Error(err)
 	}
 
-	fieList := make([]string, 0)
+	fileList := make([]string, 0)
 
 	var i uint
 	dir := filepath.Join(c.engine.ProcessDir, "data")
 	filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
 		if !f.IsDir() && f.Mode().IsRegular() && strings.HasSuffix(f.Name(), ".log") {
 			log.Debugf("Got it: %s", f.Name())
-			fieList = append(fieList, path)
+			fileList = append(fileList, path)
 			i++
 			if i == c.batchSize {
 				return io.EOF
@@ -119,7 +119,7 @@ func (c *Classifier) Run() error {
 		return nil
 	})
 
-	for _, f := range fieList {
+	for _, f := range fileList {
 		c.deal(f)
 	}
 
@@ -135,7 +135,9 @@ func (c *Classifier) deal(filename string) error {
 	}
 	defer func() {
 		file.Close()
-		if !c.engine.IsDebug() {
+		if c.engine.IsDebug() {
+			os.Rename(file.Name(), filepath.Join(c.engine.ProcessDir, "backup", filepath.Base(file.Name())) )
+		} else {
 			os.Remove(file.Name())
 		}
 	}()
@@ -360,7 +362,7 @@ func (c *Classifier) insertIpasStatusDataToTemp(filename string) error {
 }
 
 func (c *Classifier) updateIpasStatus(fp string) error {
-	name := filepath.Base(fp)
+	fname := filepath.Base(fp)
 	// 상태정보 업데이트
 	query := `
 		insert into ast_ipas(equip_id, org_id, equip_type, latitude, longitude, speed, snr, usim, ip, updated)
@@ -378,13 +380,15 @@ func (c *Classifier) updateIpasStatus(fp string) error {
 			ip = values(ip),
 			updated = values(updated);
 	`
-	rs, err := c.engine.DB.Exec(query, name)
+	rs, err := c.engine.DB.Exec(query, fname)
 	if err == nil {
 		rowsAffected, _ := rs.RowsAffected()
 		log.Debugf("table=%s, affected_rows=%d", "status", rowsAffected)
 		// 테이블 비우기
 		query = "delete from log_ipas_status_temp where file_name = ?"
-		c.engine.DB.Exec(query)
+		if _, err := c.engine.DB.Exec(query, fname); err != nil {
+			log.Error(err)
+		}
 	}
 
 	return err

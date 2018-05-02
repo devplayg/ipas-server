@@ -39,7 +39,7 @@ CREATE TABLE `adt_audit` (
   PRIMARY KEY (`audit_id`),
   KEY `ix_member_id` (`member_id`),
   KEY `ix_created` (`created`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -80,7 +80,7 @@ CREATE TABLE `ast_asset` (
   KEY `ix_ast_asset_class` (`class`),
   KEY `ix_ast_asset_class_type1` (`class`,`type1`),
   KEY `ix_ast_asset_name` (`name`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -123,44 +123,6 @@ CREATE TABLE `ast_ipas` (
   KEY `ix_ast_ipas_orgid` (`org_id`),
   KEY `ix_ast_ipas_groupid` (`group_id`),
   CONSTRAINT `fk_ast_ipas_orgid` FOREIGN KEY (`org_id`) REFERENCES `ast_asset` (`asset_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `ast_ipas_extensions`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `ast_ipas_extensions` (
-  `org_id` int(10) unsigned NOT NULL,
-  `equip_id` varchar(16) NOT NULL,
-  `event_type` int(11) NOT NULL,
-  `count` int(11) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`org_id`,`equip_id`,`event_type`),
-  CONSTRAINT `fk_ast_ipas_extensions_orgid` FOREIGN KEY (`org_id`) REFERENCES `ast_asset` (`asset_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_ast_ipas_extensions_orgid_equipid` FOREIGN KEY (`org_id`, `equip_id`) REFERENCES `ast_ipas` (`org_id`, `equip_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `ast_ipas_old`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `ast_ipas_old` (
-  `equip_id` varchar(16) NOT NULL,
-  `group_id` int(10) unsigned NOT NULL DEFAULT '0',
-  `type` int(11) NOT NULL COMMENT 'vt, zt, pt',
-  `speeding_count` int(11) NOT NULL,
-  `shock_count` int(11) NOT NULL,
-  `snr` varchar(32) NOT NULL,
-  `contact` varchar(32) NOT NULL,
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`equip_id`),
-  KEY `ix_ast_ipas_type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -374,7 +336,7 @@ CREATE TABLE `mbr_member` (
   `last_updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`member_id`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -395,40 +357,6 @@ CREATE TABLE `mbr_password` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `stats_dsttag`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_dsttag` (
-  `date` datetime NOT NULL,
-  `group_id` int(11) NOT NULL,
-  `dsttag` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
-  KEY `ix_stats_dsttag_date` (`date`),
-  KEY `ix_stats_dsttag_groupid` (`date`,`group_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stats_eventtype`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_eventtype` (
-  `date` datetime NOT NULL,
-  `group_id` int(11) NOT NULL,
-  `eventtype` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
-  KEY `ix_stats_eventtype_date` (`date`),
-  KEY `ix_stats_eventtype_groupid` (`date`,`group_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `stats_srctag`
 --
 
@@ -436,12 +364,10 @@ CREATE TABLE `stats_eventtype` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `stats_srctag` (
   `date` datetime NOT NULL,
-  `group_id` int(11) NOT NULL,
-  `srctag` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
-  KEY `ix_stats_srctag_date` (`date`),
-  KEY `ix_stats_srctag_groupid` (`date`,`group_id`)
+  `equip_id` varchar(16) NOT NULL,
+  `data` varchar(64) NOT NULL,
+  KEY `ix_stats_tag_date` (`date`),
+  KEY `ix_stats_tag_date_groupid` (`date`,`equip_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -472,4 +398,4 @@ CREATE TABLE `sys_config` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-04-22 18:41:30
+-- Dump completed on 2018-05-02 23:10:30

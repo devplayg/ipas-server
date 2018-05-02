@@ -78,17 +78,11 @@ func (e *Engine) Start() error {
 	var err error
 
 	// 필수 디렉토리 생성
-	if err := e.checkSubDir("conf"); err != nil {
-		return err
-	}
-	if err := e.checkSubDir("data"); err != nil {
-		return err
-	}
-	if err := e.checkSubDir("logs"); err != nil {
-		return err
-	}
-	if err := e.checkSubDir("tmp"); err != nil {
-		return err
+	dirs := []string{"conf", "data", "backup", "logs", "tmp"}
+	for _, d := range dirs {
+		if err := e.checkSubDir(d); err != nil {
+			return err
+		}
 	}
 
 	// 설정파일 읽기
