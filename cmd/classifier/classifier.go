@@ -12,7 +12,7 @@ import (
 
 const (
 	AppName    = "IPAS Classifier"
-	AppVersion = "2.0.1804.32201"
+	AppVersion = "2.0.1805.30201"
 )
 
 func main() {
@@ -25,6 +25,7 @@ func main() {
 		debug     = ipasserver.CmdFlags.Bool("debug", false, "Debug")
 		verbose   = ipasserver.CmdFlags.Bool("v", false, "Verbose")
 		batchSize = ipasserver.CmdFlags.Uint("size", 3, "Batch size")
+		interval = ipasserver.CmdFlags.Uint("interval", 2000, "Interval(ms)")
 		setConfig = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
@@ -61,9 +62,10 @@ func main() {
 	// 데이터 분류 시작
 	clf := classifier.NewClassifier(engine, *batchSize)
 	go func() {
+		dur := time.Duration(*interval) * time.Millisecond
 		for {
 			clf.Run()
-			time.Sleep(2 * time.Second)
+			time.Sleep(dur)
 		}
 
 	}()
