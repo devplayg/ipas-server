@@ -37,7 +37,7 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 		calType:         calType,
 		targetDate:      targetDate,
 		tmpDir:          filepath.Join(engine.ProcessDir, "tmp"),
-		eventTableKeys:  []string{"eventtype", "srctag", "dsttag"},
+		eventTableKeys:  []string{"eventtype", "eventtype1", "eventtype2", "eventtype3", "eventtype4"},
 		statusTableKeys: []string{},
 	}
 }
@@ -134,13 +134,15 @@ func (c *Calculator) Start() error {
 			for {
 				t := time.Now()
 
+				// 통계산출
 				if err := c.calculate(
 					t.Format("2006-01-02")+" 00:00:00",
 					t.Format("2006-01-02")+" 23:59:59",
 					t.Format(ipasserver.DateDefault),
 				); err == nil {
+					// 최종 통계산출 시간 업데이트
 					if err := c.engine.UpdateConfig("stats", "last_updated", t.Format(ipasserver.DateDefault), 0); err == nil {
-						// 기존 통계 삭제
+						// 직전에 산출한 통계 삭제
 						if err := c.removeStats(t.Format("2006-01-02"), true); err != nil {
 							log.Error(err)
 						}
@@ -158,10 +160,11 @@ func (c *Calculator) Start() error {
 	return nil
 }
 
+
 func (c *Calculator) calculate(from, to, mark string) error {
 	var err error
 
-	// 관리자를 제외한 사용자 자산 조회
+	// 사용자 자산 조회
 	c.memberAssets, err = c.getMemberAssets()
 	if err != nil {
 		log.Error(err)
@@ -171,11 +174,13 @@ func (c *Calculator) calculate(from, to, mark string) error {
 	log.Debugf("cal_type=%d, stats_from=%s, stats_to=%s, stats_mark=%s", c.calType, from, to, mark)
 	wg := new(sync.WaitGroup)
 
-	s1 := NewStats(c, StatsEvent, from, to, mark)  // event calculator
-	s2 := NewStats(c, StatsStatus, from, to, mark) // status calculator
-
+	// 이벤트 통계
+	s1 := NewStats(c, StatsEvent, from, to, mark)
 	wg.Add(1)
 	go s1.Start(wg)
+
+	// 상태 통계
+	s2 := NewStats(c, StatsStatus, from, to, mark)
 	wg.Add(1)
 	go s2.Start(wg)
 
@@ -192,6 +197,8 @@ func (c *Calculator) getMemberAssets() (map[int][]int, error) {
 		memberId int
 		assetId  int
 	)
+
+	// Administrator는 모든 자산 데이터에 대한 접근 권한을 가짐
 	query := `
 		select member_id, asset_id
 		from mbr_asset

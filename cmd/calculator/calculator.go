@@ -17,6 +17,7 @@ const (
 )
 
 func main() {
+
 	// CPU 설정
 	runtime.GOMAXPROCS(2)
 
@@ -26,7 +27,7 @@ func main() {
 		debug        = ipasserver.CmdFlags.Bool("debug", false, "Debug")
 		verbose      = ipasserver.CmdFlags.Bool("v", false, "Verbose")
 		setConfig    = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
-		top          = ipasserver.CmdFlags.Int("top", 3, "Top N")
+		top          = ipasserver.CmdFlags.Int("top", 5, "Top N")
 		interval     = ipasserver.CmdFlags.Int64("interval", 2000, "Interval(ms)")
 		specificDate = ipasserver.CmdFlags.String("date", "", "Specific date")
 		dateRange    = ipasserver.CmdFlags.String("range", "", "Date range(StartDate,EndDate,MarkDate)")
@@ -82,6 +83,7 @@ func getCalculatorType(specificDate, dateRange string) (int, string) {
 
 	} else if len(dateRange) > 0 { // 특정 기간에 대한 통계
 		return objs.DateRangeCalculator, dateRange
+
 	} else {
 		return objs.RealtimeCalculator, "" // 실시간 통계
 	}

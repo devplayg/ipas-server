@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -45,9 +46,11 @@ func NewEventStats(calculator *Calculator, from, to, mark string) *eventStatsCal
 		dataMap:    make(objs.DataMap),
 		dataRank:   make(objs.DataRank),
 		tables: map[string]bool{
-			"eventtype": true,
-			"srctag":    false,
-			"dsttag":    false,
+			"eventtype":  true,
+			"eventtype1": false,
+			"eventtype2": false,
+			"eventtype3": false,
+			"eventtype4": false,
 		},
 		from: from,
 		to:   to,
@@ -98,9 +101,11 @@ func (c *eventStatsCalculator) produceStats() error {
 			log.Error(err)
 			return err
 		}
+		// 이벤트 유형 통계
 		c.addToStats(&e, "eventtype", e.EventType)
-		c.addToStats(&e, "srctag", e.EquipId)
-		c.addToStats(&e, "dsttag", e.Targets)
+		
+		// 이벤트 타입별 Src tag 통계
+		c.addToStats(&e, "eventtype"+strconv.Itoa(e.EventType), e.EquipId) // eventtype1~4
 	}
 	err = rows.Err()
 	if err != nil {
