@@ -44,7 +44,7 @@ func (s *Stacker) Start(errChan chan<- error) error {
 
 		save := func() {
 			// 임시 파일 생성
-			tmpFile, err := ioutil.TempFile(s.tmpDir, "")
+			tmpFile, err := ioutil.TempFile(s.tmpDir, "data_")
 			if err != nil {
 				errChan <- err
 			}

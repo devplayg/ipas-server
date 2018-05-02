@@ -34,6 +34,7 @@ type eventStatsCalculator struct {
 	wg         *sync.WaitGroup
 	dataMap    objs.DataMap
 	dataRank   objs.DataRank
+	equipStats map[string]map[int]int
 	tables     map[string]bool
 	from       string
 	to         string
@@ -45,7 +46,7 @@ func NewEventStats(calculator *Calculator, from, to, mark string) *eventStatsCal
 		calculator: calculator,
 		dataMap:    make(objs.DataMap),
 		dataRank:   make(objs.DataRank),
-		tables: map[string]bool{
+		tables: map[string]bool{ // true:전체데이터 유지, false: TopN 데이터만 유지
 			"eventtype":  true,
 			"eventtype1": false,
 			"eventtype2": false,
@@ -70,7 +71,7 @@ func (c *eventStatsCalculator) Start(wg *sync.WaitGroup) error {
 		log.Error(err)
 		return err
 	}
-	log.Debugf("cal_type=%d, stats_type=%d, exec_time=%3.1f", c.calculator.calType, StatsEvent, time.Since(start).Seconds())
+	log.Debugf("cal_type=%d, stats_type=%d, exec_time=%3.1fs", c.calculator.calType, StatsEvent, time.Since(start).Seconds())
 	return nil
 }
 
@@ -78,6 +79,7 @@ func (c *eventStatsCalculator) produceStats() error {
 	// 통계 구조체 초기화
 	c.dataMap[RootId] = make(map[string]map[interface{}]int64)
 	c.dataRank[RootId] = make(map[string]objs.ItemList)
+	c.equipStats = make(map[string]map[int]int)
 
 	// 데이터 조회
 	query := `
@@ -95,17 +97,35 @@ func (c *eventStatsCalculator) produceStats() error {
 
 	// 데이터 맵 생성
 	for rows.Next() {
+
+		// 이벤트 객체 생성
 		e := objs.IpasEvent{}
+
+		// 데이터 읽기
 		err := rows.Scan(&e.OrgId, &e.GroupId, &e.EventType, &e.EquipId, &e.Targets)
 		if err != nil {
 			log.Error(err)
 			return err
 		}
+
+		// 장비 추적통계 초기화
+		if _, ok := c.equipStats[e.EquipId]; !ok {
+			c.equipStats[e.EquipId] = map[int]int{
+				1: 0,
+				2: 0,
+				3: 0,
+				4: 0,
+			}
+		}
+		// 이벤트 타입별 Src tag 통계
+		if e.EventType >= 0 && e.EventType <= 4 {
+			c.equipStats[e.EquipId][e.EventType]++
+			c.addToStats(&e, "eventtype"+strconv.Itoa(e.EventType), e.EquipId) // eventtype1~4
+		}
+
 		// 이벤트 유형 통계
 		c.addToStats(&e, "eventtype", e.EventType)
-		
-		// 이벤트 타입별 Src tag 통계
-		c.addToStats(&e, "eventtype"+strconv.Itoa(e.EventType), e.EquipId) // eventtype1~4
+
 	}
 	err = rows.Err()
 	if err != nil {
@@ -189,10 +209,12 @@ func (c *eventStatsCalculator) insert() error {
 			os.Remove(file.Name())
 		}
 	}()
+
+	// 통계별 파일 생성
 	for id, m := range c.dataRank {
 		for category, list := range m {
 			if _, ok := fm[category]; !ok {
-				tempFile, err := ioutil.TempFile("", category+"_")
+				tempFile, err := ioutil.TempFile(c.calculator.tmpDir, category+"_")
 				if err != nil {
 					return err
 				}
@@ -206,6 +228,7 @@ func (c *eventStatsCalculator) insert() error {
 		}
 	}
 
+	// 통계 Bulk insert
 	for category, file := range fm {
 		file.Close()
 		query := fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_%s", file.Name(), category)
@@ -217,6 +240,27 @@ func (c *eventStatsCalculator) insert() error {
 			log.Debug(err)
 			return err
 		}
+	}
+
+	// Tag 통계
+	tempFile, err := ioutil.TempFile(c.calculator.tmpDir, "srctag_")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tempFile.Name())
+	for tag, m := range c.equipStats {
+		line := fmt.Sprintf("%s\t%s\t%d,%d,%d,%d\n", c.mark, tag, m[1], m[2], m[3], m[4])
+		tempFile.WriteString(line)
+	}
+	tempFile.Close()
+	query := fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_srctag", tempFile.Name())
+	rs, err := c.calculator.engine.DB.Exec(query)
+	if err == nil {
+		num, _ := rs.RowsAffected()
+		log.Debugf("cal_type=%d, category=%s, affected_rows=%d", c.calculator.calType, "srctag", num)
+	} else {
+		log.Debug(err)
+		return err
 	}
 	return nil
 }

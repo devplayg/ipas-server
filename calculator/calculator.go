@@ -37,7 +37,7 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 		calType:         calType,
 		targetDate:      targetDate,
 		tmpDir:          filepath.Join(engine.ProcessDir, "tmp"),
-		eventTableKeys:  []string{"eventtype", "eventtype1", "eventtype2", "eventtype3", "eventtype4"},
+		eventTableKeys:  []string{"eventtype", "eventtype1", "eventtype2", "eventtype3", "eventtype4", "srctag"},
 		statusTableKeys: []string{},
 	}
 }
@@ -186,7 +186,7 @@ func (c *Calculator) calculate(from, to, mark string) error {
 
 	// 통계산출 완료까지 대기
 	wg.Wait()
-	log.Debugf("cal_type=%d, total_exec_time=%3.1f", c.calType, time.Since(start).Seconds())
+	log.Debugf("cal_type=%d, total_exec_time=%3.1fs", c.calType, time.Since(start).Seconds())
 	return nil
 }
 
