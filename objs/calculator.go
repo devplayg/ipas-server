@@ -2,6 +2,13 @@ package objs
 
 import "sort"
 
+const (
+	RealtimeCalculator     = 1
+	SpecificDateCalculator = 2
+	DateRangeCalculator    = 3
+)
+
+
 type Item struct {
 	Key   interface{}
 	Count int64
@@ -29,10 +36,3 @@ func DetermineRankings(m map[interface{}]int64, top int) ItemList {
 		return list
 	}
 }
-
-const (
-	RealtimeCalculator     = 1
-	SpecificDateCalculator = 2
-	DateRangeCalculator    = 3
-
-)
