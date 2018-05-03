@@ -262,7 +262,7 @@ func (c *eventStatsCalculator) insert() error {
 	rs, err := c.calculator.engine.DB.Exec(query)
 	if err == nil {
 		num, _ := rs.RowsAffected()
-		log.Debugf("cal_type=%d, stats_type=1, category=%s, affected_rows=%d", c.calculator.calType, "stats_equip", num)
+		log.Debugf("cal_type=%d, stats_type=1, category=%s, affected_rows=%d", c.calculator.calType, "equip", num)
 	} else {
 		log.Debug(err)
 		return err

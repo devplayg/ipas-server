@@ -1,8 +1,8 @@
--- MySQL dump 10.16  Distrib 10.1.28-MariaDB, for Win32 (AMD64)
+-- MySQL dump 10.16  Distrib 10.2.14-MariaDB, for Linux (x86_64)
 --
 -- Host: localhost    Database: ipasm
 -- ------------------------------------------------------
--- Server version	10.1.28-MariaDB
+-- Server version	10.2.14-MariaDB
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -35,7 +35,7 @@ CREATE TABLE `adt_audit` (
   `category` varchar(32) NOT NULL,
   `ip` int(10) unsigned NOT NULL,
   `message` varchar(256) NOT NULL,
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`audit_id`),
   KEY `ix_member_id` (`member_id`),
   KEY `ix_created` (`created`)
@@ -51,7 +51,7 @@ CREATE TABLE `adt_audit` (
 CREATE TABLE `adt_audit_detail` (
   `audit_id` int(10) unsigned NOT NULL,
   `detail` mediumtext NOT NULL,
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
   KEY `ix_audit_id` (`audit_id`),
   KEY `ix_created` (`created`),
   CONSTRAINT `fk_adt_audit_detail_audit_id` FOREIGN KEY (`audit_id`) REFERENCES `adt_audit` (`audit_id`) ON DELETE CASCADE ON UPDATE CASCADE
@@ -70,11 +70,11 @@ CREATE TABLE `ast_asset` (
   `parent_id` int(10) unsigned NOT NULL,
   `name` varchar(128) NOT NULL,
   `type1` int(10) unsigned NOT NULL,
-  `type2` int(10) unsigned NOT NULL DEFAULT '0',
+  `type2` int(10) unsigned NOT NULL DEFAULT 0,
   `icon` varchar(256) NOT NULL DEFAULT '',
-  `seq` int(10) unsigned NOT NULL DEFAULT '0',
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `seq` int(10) unsigned NOT NULL DEFAULT 0,
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`asset_id`),
   KEY `ix_ast_asset_parentId` (`parent_id`),
   KEY `ix_ast_asset_class` (`class`),
@@ -105,19 +105,19 @@ CREATE TABLE `ast_code` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `ast_ipas` (
-  `org_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `org_id` int(10) unsigned NOT NULL DEFAULT 0,
   `equip_id` varchar(16) NOT NULL,
-  `group_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `group_id` int(10) unsigned NOT NULL DEFAULT 0,
   `equip_type` int(11) NOT NULL COMMENT 'vt, zt, pt',
-  `latitude` float(10,6) NOT NULL DEFAULT '0.000000',
-  `longitude` float(10,6) NOT NULL DEFAULT '0.000000',
-  `speed` int(11) NOT NULL DEFAULT '0',
-  `snr` int(11) NOT NULL DEFAULT '0',
+  `latitude` float(10,6) NOT NULL DEFAULT 0.000000,
+  `longitude` float(10,6) NOT NULL DEFAULT 0.000000,
+  `speed` int(11) NOT NULL DEFAULT 0,
+  `snr` int(11) NOT NULL DEFAULT 0,
   `usim` varchar(32) NOT NULL DEFAULT '',
   `name` varchar(32) NOT NULL DEFAULT '',
-  `ip` int(10) unsigned NOT NULL DEFAULT '0',
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ip` int(10) unsigned NOT NULL DEFAULT 0,
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`org_id`,`equip_id`),
   KEY `ix_ast_ipas_equiptype` (`equip_type`),
   KEY `ix_ast_ipas_orgid` (`org_id`),
@@ -134,8 +134,8 @@ CREATE TABLE `ast_ipas` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `log_ipas` (
   `date` datetime NOT NULL,
-  `org_id` int(10) unsigned NOT NULL DEFAULT '0',
-  `group_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `org_id` int(10) unsigned NOT NULL DEFAULT 0,
+  `group_id` int(10) unsigned NOT NULL DEFAULT 0,
   `equip_id` varchar(16) NOT NULL,
   `target` varchar(128) NOT NULL,
   `speeding_count` int(11) NOT NULL,
@@ -147,7 +147,7 @@ CREATE TABLE `log_ipas` (
   `v2v_dist` int(11) NOT NULL COMMENT 'cm',
   `shock_threshold` int(11) NOT NULL,
   `speed_threshold` int(11) NOT NULL,
-  `rdate` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `rdate` datetime NOT NULL DEFAULT current_timestamp(),
   KEY `ix_log_ipas_date` (`date`),
   KEY `ix_log_ipas_date_equip_id` (`date`,`equip_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -161,20 +161,20 @@ CREATE TABLE `log_ipas` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `log_ipas_event` (
   `date` datetime NOT NULL,
-  `org_id` int(10) unsigned NOT NULL DEFAULT '0',
-  `group_id` int(10) unsigned NOT NULL DEFAULT '0',
-  `event_type` int(11) NOT NULL DEFAULT '0',
+  `org_id` int(10) unsigned NOT NULL DEFAULT 0,
+  `group_id` int(10) unsigned NOT NULL DEFAULT 0,
+  `event_type` int(11) NOT NULL DEFAULT 0,
   `session_id` varchar(64) NOT NULL,
   `equip_id` varchar(16) NOT NULL,
   `targets` varchar(256) NOT NULL DEFAULT '',
-  `latitude` float(10,6) NOT NULL DEFAULT '0.000000',
-  `longitude` float(10,6) NOT NULL DEFAULT '0.000000',
-  `speed` int(11) NOT NULL DEFAULT '0',
-  `snr` int(11) NOT NULL DEFAULT '0',
+  `latitude` float(10,6) NOT NULL DEFAULT 0.000000,
+  `longitude` float(10,6) NOT NULL DEFAULT 0.000000,
+  `speed` int(11) NOT NULL DEFAULT 0,
+  `snr` int(11) NOT NULL DEFAULT 0,
   `usim` varchar(32) NOT NULL DEFAULT '',
-  `distance` int(11) NOT NULL DEFAULT '0',
-  `ip` int(10) unsigned NOT NULL DEFAULT '0',
-  `recv_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `distance` int(11) NOT NULL DEFAULT 0,
+  `ip` int(10) unsigned NOT NULL DEFAULT 0,
+  `recv_date` datetime NOT NULL DEFAULT current_timestamp(),
   KEY `ix_log_ipas_event_date` (`date`),
   KEY `ix_log_ipas_event_sessionid` (`session_id`),
   KEY `ix_log_ipas_event_date_orgid` (`date`,`org_id`),
@@ -192,17 +192,17 @@ CREATE TABLE `log_ipas_event` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `log_ipas_status` (
   `date` datetime NOT NULL,
-  `org_id` int(10) unsigned NOT NULL DEFAULT '0',
-  `group_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `org_id` int(10) unsigned NOT NULL DEFAULT 0,
+  `group_id` int(10) unsigned NOT NULL DEFAULT 0,
   `session_id` varchar(64) NOT NULL,
   `equip_id` varchar(16) NOT NULL,
-  `latitude` float(10,6) NOT NULL DEFAULT '0.000000',
-  `longitude` float(10,6) NOT NULL DEFAULT '0.000000',
-  `speed` int(11) NOT NULL DEFAULT '0',
-  `snr` int(11) NOT NULL DEFAULT '0',
+  `latitude` float(10,6) NOT NULL DEFAULT 0.000000,
+  `longitude` float(10,6) NOT NULL DEFAULT 0.000000,
+  `speed` int(11) NOT NULL DEFAULT 0,
+  `snr` int(11) NOT NULL DEFAULT 0,
   `usim` varchar(32) NOT NULL DEFAULT '',
-  `ip` int(10) unsigned NOT NULL DEFAULT '0',
-  `recv_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ip` int(10) unsigned NOT NULL DEFAULT 0,
+  `recv_date` datetime NOT NULL DEFAULT current_timestamp(),
   KEY `ix_log_ipas_status_date` (`date`),
   KEY `ix_log_ipas_status_sessionid` (`session_id`),
   KEY `ix_log_ipas_status_date_orgid` (`date`,`org_id`),
@@ -220,17 +220,17 @@ CREATE TABLE `log_ipas_status` (
 CREATE TABLE `log_ipas_status_temp` (
   `file_name` varchar(256) NOT NULL,
   `date` datetime NOT NULL,
-  `org_id` int(10) unsigned NOT NULL DEFAULT '0',
-  `group_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `org_id` int(10) unsigned NOT NULL DEFAULT 0,
+  `group_id` int(10) unsigned NOT NULL DEFAULT 0,
   `session_id` varchar(64) NOT NULL,
   `equip_id` varchar(16) NOT NULL,
-  `latitude` float(10,6) NOT NULL DEFAULT '0.000000',
-  `longitude` float(10,6) NOT NULL DEFAULT '0.000000',
-  `speed` int(11) NOT NULL DEFAULT '0',
-  `snr` int(11) NOT NULL DEFAULT '0',
+  `latitude` float(10,6) NOT NULL DEFAULT 0.000000,
+  `longitude` float(10,6) NOT NULL DEFAULT 0.000000,
+  `speed` int(11) NOT NULL DEFAULT 0,
+  `snr` int(11) NOT NULL DEFAULT 0,
   `usim` varchar(32) NOT NULL DEFAULT '',
-  `ip` int(10) unsigned NOT NULL DEFAULT '0',
-  `recv_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ip` int(10) unsigned NOT NULL DEFAULT 0,
+  `recv_date` datetime NOT NULL DEFAULT current_timestamp(),
   KEY `ix_log_ipas_status_filename` (`file_name`(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -243,7 +243,7 @@ CREATE TABLE `log_ipas_status_temp` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `log_sample` (
   `date` datetime NOT NULL,
-  `recv_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `recv_date` datetime NOT NULL DEFAULT current_timestamp(),
   `org` int(11) NOT NULL,
   `sub_org` int(11) NOT NULL,
   `guid` varchar(34) NOT NULL,
@@ -262,7 +262,7 @@ CREATE TABLE `mbr_allowed_ip` (
   `member_id` int(11) NOT NULL,
   `ip` int(10) unsigned NOT NULL,
   `cidr` int(11) NOT NULL,
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`member_id`,`ip`,`cidr`),
   CONSTRAINT `fk_mbr_allowed_ip_member_id` FOREIGN KEY (`member_id`) REFERENCES `mbr_member` (`member_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='4.0.1506.30401';
@@ -293,8 +293,8 @@ CREATE TABLE `mbr_config` (
   `keyword` varchar(64) NOT NULL,
   `value_s` varchar(128) NOT NULL,
   `value_n` int(11) NOT NULL,
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   KEY `ix_member_id` (`member_id`),
   KEY `ix_keyword` (`keyword`),
   CONSTRAINT `fk_mbr_config_member_id` FOREIGN KEY (`member_id`) REFERENCES `mbr_member` (`member_id`) ON DELETE CASCADE ON UPDATE CASCADE
@@ -324,16 +324,16 @@ CREATE TABLE `mbr_member` (
   `address2` varchar(128) NOT NULL DEFAULT '',
   `phone1` varchar(64) NOT NULL DEFAULT '',
   `phone2` varchar(64) NOT NULL DEFAULT '',
-  `login_count` int(11) unsigned NOT NULL DEFAULT '0',
-  `status` tinyint(3) NOT NULL DEFAULT '0',
+  `login_count` int(11) unsigned NOT NULL DEFAULT 0,
+  `status` tinyint(3) NOT NULL DEFAULT 0,
   `timezone` varchar(64) NOT NULL DEFAULT '',
-  `failed_login_count` int(11) unsigned NOT NULL DEFAULT '0',
+  `failed_login_count` int(11) unsigned NOT NULL DEFAULT 0,
   `last_success_login` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `last_failed_login` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
-  `last_read_message` int(11) unsigned NOT NULL DEFAULT '0',
+  `last_read_message` int(11) unsigned NOT NULL DEFAULT 0,
   `session_id` varchar(64) NOT NULL DEFAULT '',
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `last_updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`member_id`),
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -349,25 +349,246 @@ CREATE TABLE `mbr_password` (
   `member_id` int(11) NOT NULL,
   `password` varchar(64) NOT NULL,
   `salt` varchar(32) NOT NULL,
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`member_id`),
   CONSTRAINT `fk_mbr_password_member_id` FOREIGN KEY (`member_id`) REFERENCES `mbr_member` (`member_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `stats_srctag`
+-- Table structure for table `stats_equip`
 --
 
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_srctag` (
+CREATE TABLE `stats_equip` (
   `date` datetime NOT NULL,
   `equip_id` varchar(16) NOT NULL,
   `data` varchar(64) NOT NULL,
-  KEY `ix_stats_tag_date` (`date`),
-  KEY `ix_stats_tag_date_groupid` (`date`,`equip_id`)
+  KEY `ix_date` (`date`),
+  KEY `ix_equipid` (`date`,`equip_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt1_by_equip`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt1_by_equip` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt1_by_group`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt1_by_group` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt1_by_org`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt1_by_org` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt2_by_equip`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt2_by_equip` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt2_by_group`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt2_by_group` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt2_by_org`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt2_by_org` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt3_by_equip`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt3_by_equip` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt3_by_group`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt3_by_group` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt3_by_org`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt3_by_org` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt4_by_equip`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt4_by_equip` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt4_by_group`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt4_by_group` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_evt4_by_org`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_evt4_by_org` (
+  `date` datetime NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_groupid` (`date`,`asset_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -382,8 +603,8 @@ CREATE TABLE `sys_config` (
   `keyword` varchar(64) NOT NULL,
   `value_s` varchar(256) NOT NULL,
   `value_n` int(11) NOT NULL,
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`section`,`keyword`),
   KEY `ix_section` (`section`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -398,4 +619,4 @@ CREATE TABLE `sys_config` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-05-02 23:10:30
+-- Dump completed on 2018-05-03 23:17:06
