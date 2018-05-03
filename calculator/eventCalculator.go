@@ -47,11 +47,7 @@ func NewEventStats(calculator *Calculator, from, to, mark string) *eventStatsCal
 		dataMap:    make(objs.DataMap),
 		dataRank:   make(objs.DataRank),
 		tables: map[string]bool{ // true:전체데이터 유지, false: TopN 데이터만 유지
-			"eventtype":  true,
-			"eventtype1": false,
-			"eventtype2": false,
-			"eventtype3": false,
-			"eventtype4": false,
+			"evt": true,
 		},
 		from: from,
 		to:   to,
@@ -76,6 +72,7 @@ func (c *eventStatsCalculator) Start(wg *sync.WaitGroup) error {
 }
 
 func (c *eventStatsCalculator) produceStats() error {
+
 	// 통계 구조체 초기화
 	c.dataMap[RootId] = make(map[string]map[interface{}]int64)
 	c.dataRank[RootId] = make(map[string]objs.ItemList)
@@ -107,24 +104,30 @@ func (c *eventStatsCalculator) produceStats() error {
 			log.Error(err)
 			return err
 		}
-
 		// 장비 추적통계 초기화
 		if _, ok := c.equipStats[e.EquipId]; !ok {
 			c.equipStats[e.EquipId] = map[int]int{
-				1: 0,
-				2: 0,
-				3: 0,
-				4: 0,
+				objs.StartEvent:     0,
+				objs.ShockEvent:     0,
+				objs.SpeedingEvent:  0,
+				objs.ProximityEvent: 0,
 			}
-		}
-		// 이벤트 타입별 Src tag 통계
-		if e.EventType >= 0 && e.EventType <= 4 {
-			c.equipStats[e.EquipId][e.EventType]++
-			c.addToStats(&e, "eventtype"+strconv.Itoa(e.EventType), e.EquipId) // eventtype1~4
 		}
 
 		// 이벤트 유형 통계
-		c.addToStats(&e, "eventtype", e.EventType)
+		c.addToStats(&e, "evt", e.EventType)
+		c.equipStats[e.EquipId][e.EventType]++
+
+		// 이벤트 타입별 Src tag 통계
+		if e.EventType >= 0 && e.EventType <= 4 {
+			evt := strconv.Itoa(e.EventType)
+
+			c.addToStats(&e, "evt"+evt+"_per_equip", e.EquipId) // eventtype1~4
+			c.addToStats(&e, "evt"+evt+"_per_org", e.OrgId)
+			if e.GroupId > 0 {
+				c.addToStats(&e, "evt"+evt+"_per_group", e.GroupId)
+			}
+		}
 
 	}
 	err = rows.Err()
@@ -135,12 +138,14 @@ func (c *eventStatsCalculator) produceStats() error {
 
 	for id, m := range c.dataMap {
 		for category, data := range m {
-			if isTotalStats, ok := c.tables[category]; ok {
-				if isTotalStats {
+			if keepAll, ok := c.tables[category]; ok {
+				if keepAll { // 모든 순위 보관
 					c.dataRank[id][category] = objs.DetermineRankings(data, 0)
-				} else {
+				} else { // Top N 데이터만 보관
 					c.dataRank[id][category] = objs.DetermineRankings(data, c.calculator.top)
 				}
+			} else { // Top N 데이터만 보관
+				c.dataRank[id][category] = objs.DetermineRankings(data, c.calculator.top)
 			}
 		}
 	}
@@ -214,7 +219,7 @@ func (c *eventStatsCalculator) insert() error {
 	for id, m := range c.dataRank {
 		for category, list := range m {
 			if _, ok := fm[category]; !ok {
-				tempFile, err := ioutil.TempFile(c.calculator.tmpDir, category+"_")
+				tempFile, err := ioutil.TempFile(c.calculator.tmpDir, "stats_"+category+"_")
 				if err != nil {
 					return err
 				}
@@ -235,7 +240,7 @@ func (c *eventStatsCalculator) insert() error {
 		rs, err := c.calculator.engine.DB.Exec(query)
 		if err == nil {
 			num, _ := rs.RowsAffected()
-			log.Debugf("cal_type=%d, category=%s, affected_rows=%d", c.calculator.calType, category, num)
+			log.Debugf("cal_type=%d, stats_type=1, category=%s, affected_rows=%d", c.calculator.calType, category, num)
 		} else {
 			log.Debug(err)
 			return err
@@ -243,7 +248,7 @@ func (c *eventStatsCalculator) insert() error {
 	}
 
 	// Tag 통계
-	tempFile, err := ioutil.TempFile(c.calculator.tmpDir, "srctag_")
+	tempFile, err := ioutil.TempFile(c.calculator.tmpDir, "stats_equip_")
 	if err != nil {
 		return err
 	}
@@ -253,11 +258,11 @@ func (c *eventStatsCalculator) insert() error {
 		tempFile.WriteString(line)
 	}
 	tempFile.Close()
-	query := fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_srctag", tempFile.Name())
+	query := fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_equip", tempFile.Name())
 	rs, err := c.calculator.engine.DB.Exec(query)
 	if err == nil {
 		num, _ := rs.RowsAffected()
-		log.Debugf("cal_type=%d, category=%s, affected_rows=%d", c.calculator.calType, "srctag", num)
+		log.Debugf("cal_type=%d, stats_type=1, category=%s, affected_rows=%d", c.calculator.calType, "stats_equip", num)
 	} else {
 		log.Debug(err)
 		return err

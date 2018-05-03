@@ -31,13 +31,21 @@ type Calculator struct {
 
 func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, calType int, targetDate string) *Calculator {
 	return &Calculator{
-		engine:          engine,
-		top:             top,
-		interval:        interval,
-		calType:         calType,
-		targetDate:      targetDate,
-		tmpDir:          filepath.Join(engine.ProcessDir, "tmp"),
-		eventTableKeys:  []string{"eventtype", "eventtype1", "eventtype2", "eventtype3", "eventtype4", "srctag"},
+		engine:     engine,
+		top:        top,
+		interval:   interval,
+		calType:    calType,
+		targetDate: targetDate,
+		tmpDir:     filepath.Join(engine.ProcessDir, "tmp"),
+		eventTableKeys: []string{
+			"evt",                                                                  // 이벤트 유형별 통계
+			"evt1_per_equip", "evt2_per_equip", "evt3_per_equip", "evt4_per_equip", // 이벤트 유형별 자산 통계(상세)
+			"evt1_per_org", "evt1_per_group", // 이벤트 유형(1)별 기관/그룹 통계
+			"evt2_per_org", "evt2_per_group", // 이벤트 유형(2)별 기관/그룹 통계
+			"evt3_per_org", "evt3_per_group", // 이벤트 유형(3)별 기관/그룹 통계
+			"evt4_per_org", "evt4_per_group", // 이벤트 유형(4)별 기관/그룹 통계
+			"equip", // 장비 통계
+		},
 		statusTableKeys: []string{},
 	}
 }
@@ -62,31 +70,38 @@ func (c *Calculator) removeStats(date string, isToday bool) error {
 func (c *Calculator) createTables() error {
 	query := `
 		CREATE TABLE IF NOT EXISTS stats_%s (
-			date datetime NOT NULL,
-			group_id int(11) NOT NULL,
-			%s varchar(64) NOT NULL,
-			count int(10) unsigned NOT NULL,
-			rank int(10) unsigned NOT NULL,
-			KEY ix_stats_%s_date (date),
-			KEY ix_stats_%s_groupid (date,group_id)
-		) ENGINE=InnoDB DEFAULT CHARSET=utf8
+			date      datetime NOT NULL,
+			asset_id  int(11) NOT NULL,
+			item      varchar(64) NOT NULL,
+			count     int(10) unsigned NOT NULL,
+			rank      int(10) unsigned NOT NULL,
+			KEY       ix_date (date),
+			KEY       ix_groupid (date, asset_id)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 	`
 	for _, k := range append(c.eventTableKeys, c.statusTableKeys...) {
-		_, err := c.engine.DB.Query(fmt.Sprintf(query, k, k, k, k))
+		_, err := c.engine.DB.Exec(fmt.Sprintf(query, k))
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
+
+//CREATE TABLE `stats_equip` (
+//`date` datetime NOT NULL,
+//`equip_id` varchar(16) NOT NULL,
+//`data` varchar(64) NOT NULL,
+//KEY `ix_date` (`date`),
+//KEY `ix_equipid` (`date`,`equip_id`)
+//) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 
 func (c *Calculator) Start() error {
 	if err := c.createTables(); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Debugf("cal_type=%d, inverval=%d(ms)", c.calType, c.interval)
 	if c.calType == objs.SpecificDateCalculator {
 		t, err := time.Parse("2006-01-02", c.targetDate)
 		if err != nil {
@@ -131,6 +146,7 @@ func (c *Calculator) Start() error {
 
 	} else if c.calType == objs.RealtimeCalculator { // 실시간 통계(당일)
 		go func() {
+			log.Debugf("cal_type=%d, inverval=%s", c.calType, c.interval.String())
 			for {
 				t := time.Now()
 
@@ -159,7 +175,6 @@ func (c *Calculator) Start() error {
 
 	return nil
 }
-
 
 func (c *Calculator) calculate(from, to, mark string) error {
 	var err error

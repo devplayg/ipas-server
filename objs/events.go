@@ -6,6 +6,11 @@ const (
 	LogEvent    = 1
 	StatusEvent = 2
 	RuleEvent   = 3
+
+	StartEvent     = 1 // 시동
+	ShockEvent     = 2 // 충격
+	SpeedingEvent  = 3 // 과속
+	ProximityEvent = 4 // 근접
 )
 
 type Event struct {
