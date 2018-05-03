@@ -39,11 +39,11 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 		tmpDir:     filepath.Join(engine.ProcessDir, "tmp"),
 		eventTableKeys: []string{
 			"evt",                                                                  // 이벤트 유형별 통계
-			"evt1_per_equip", "evt2_per_equip", "evt3_per_equip", "evt4_per_equip", // 이벤트 유형별 자산 통계(상세)
-			"evt1_per_org", "evt1_per_group", // 이벤트 유형(1)별 기관/그룹 통계
-			"evt2_per_org", "evt2_per_group", // 이벤트 유형(2)별 기관/그룹 통계
-			"evt3_per_org", "evt3_per_group", // 이벤트 유형(3)별 기관/그룹 통계
-			"evt4_per_org", "evt4_per_group", // 이벤트 유형(4)별 기관/그룹 통계
+			"evt1_by_equip", "evt2_by_equip", "evt3_by_equip", "evt4_by_equip", // 이벤트 유형별 자산 통계(상세)
+			"evt1_by_org", "evt1_by_group", // 이벤트 유형(1)별 기관/그룹 통계
+			"evt2_by_org", "evt2_by_group", // 이벤트 유형(2)별 기관/그룹 통계
+			"evt3_by_org", "evt3_by_group", // 이벤트 유형(3)별 기관/그룹 통계
+			"evt4_by_org", "evt4_by_group", // 이벤트 유형(4)별 기관/그룹 통계
 			"equip", // 장비 통계
 		},
 		statusTableKeys: []string{},

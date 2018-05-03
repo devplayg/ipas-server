@@ -122,10 +122,10 @@ func (c *eventStatsCalculator) produceStats() error {
 		if e.EventType >= 0 && e.EventType <= 4 {
 			evt := strconv.Itoa(e.EventType)
 
-			c.addToStats(&e, "evt"+evt+"_per_equip", e.EquipId) // eventtype1~4
-			c.addToStats(&e, "evt"+evt+"_per_org", e.OrgId)
+			c.addToStats(&e, "evt"+evt+"_by_equip", e.EquipId) // eventtype1~4
+			c.addToStats(&e, "evt"+evt+"_by_org", e.OrgId)
 			if e.GroupId > 0 {
-				c.addToStats(&e, "evt"+evt+"_per_group", e.GroupId)
+				c.addToStats(&e, "evt"+evt+"_by_group", e.GroupId)
 			}
 		}
 
