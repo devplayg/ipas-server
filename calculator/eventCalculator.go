@@ -91,7 +91,6 @@ func (c *eventStatsCalculator) produceStats() error {
 		return err
 	}
 	defer rows.Close()
-
 	// 데이터 맵 생성
 	for rows.Next() {
 
@@ -115,18 +114,19 @@ func (c *eventStatsCalculator) produceStats() error {
 		}
 
 		// 이벤트 유형 통계
-		c.addToStats(&e, "evt", e.EventType)
 		c.equipStats[e.EquipId][e.EventType]++
+		c.addToStats(&e, "evt", e.EventType)
+
 
 		// 이벤트 타입별 Src tag 통계
 		if e.EventType >= 0 && e.EventType <= 4 {
 			evt := strconv.Itoa(e.EventType)
 
 			c.addToStats(&e, "evt"+evt+"_by_equip", e.EquipId) // eventtype1~4
-			c.addToStats(&e, "evt"+evt+"_by_org", e.OrgId)
-			if e.GroupId > 0 {
-				c.addToStats(&e, "evt"+evt+"_by_group", e.GroupId)
-			}
+			c.addToStats(&e, "evt"+evt+"_by_group", e.GroupId)
+			//if e.GroupId > 0 {
+			//	c.addToStats(&e, "evt"+evt+"_by_group", e.GroupId)
+			//}
 		}
 
 	}
@@ -153,7 +153,7 @@ func (c *eventStatsCalculator) produceStats() error {
 	return nil
 }
 
-func (c *eventStatsCalculator) addToStats(r *objs.IpasEvent, category string, val interface{}) error {
+func (c *eventStatsCalculator) addToStats(e *objs.IpasEvent, category string, val interface{}) error {
 
 	// 전체 통계
 	if _, ok := c.dataMap[RootId][category]; !ok {
@@ -163,43 +163,43 @@ func (c *eventStatsCalculator) addToStats(r *objs.IpasEvent, category string, va
 	c.dataMap[RootId][category][val] += 1
 
 	// 기관 통계
-	if _, ok := c.dataMap[r.OrgId]; !ok {
-		c.dataMap[r.OrgId] = make(map[string]map[interface{}]int64)
-		c.dataRank[r.OrgId] = make(map[string]objs.ItemList)
+	if _, ok := c.dataMap[e.OrgId]; !ok {
+		c.dataMap[e.OrgId] = make(map[string]map[interface{}]int64)
+		c.dataRank[e.OrgId] = make(map[string]objs.ItemList)
 	}
-	if _, ok := c.dataMap[r.OrgId][category]; !ok {
-		c.dataMap[r.OrgId][category] = make(map[interface{}]int64)
-		c.dataRank[r.OrgId][category] = nil
+	if _, ok := c.dataMap[e.OrgId][category]; !ok {
+		c.dataMap[e.OrgId][category] = make(map[interface{}]int64)
+		c.dataRank[e.OrgId][category] = nil
 	}
-	c.dataMap[r.OrgId][category][val]++
+	c.dataMap[e.OrgId][category][val]++
 
 	// 그룹 통계
-	if r.GroupId > 0 {
-		if _, ok := c.dataMap[r.GroupId]; !ok {
-			c.dataMap[r.GroupId] = make(map[string]map[interface{}]int64)
-			c.dataRank[r.GroupId] = make(map[string]objs.ItemList)
+	if e.GroupId > 0 {
+		if _, ok := c.dataMap[e.GroupId]; !ok {
+			c.dataMap[e.GroupId] = make(map[string]map[interface{}]int64)
+			c.dataRank[e.GroupId] = make(map[string]objs.ItemList)
 		}
-		if _, ok := c.dataMap[r.GroupId][category]; !ok {
-			c.dataMap[r.GroupId][category] = make(map[interface{}]int64)
-			c.dataRank[r.GroupId][category] = nil
+		if _, ok := c.dataMap[e.GroupId][category]; !ok {
+			c.dataMap[e.GroupId][category] = make(map[interface{}]int64)
+			c.dataRank[e.GroupId][category] = nil
 		}
-		c.dataMap[r.GroupId][category][val]++
-	}
+		c.dataMap[e.GroupId][category][val]++
 
-	// 사용자 소속 권한의 전체 통계
-	if arr, ok := c.calculator.memberAssets[r.OrgId]; ok {
-		for _, memberId := range arr {
-			id := memberId * -1
+		// 사용자 소속 권한의 전체 통계
+		if arr, ok := c.calculator.memberAssets[e.GroupId]; ok {
+			for _, memberId := range arr {
+				id := memberId * -1
 
-			if _, ok := c.dataMap[id]; !ok {
-				c.dataMap[id] = make(map[string]map[interface{}]int64)
-				c.dataRank[id] = make(map[string]objs.ItemList)
+				if _, ok := c.dataMap[id]; !ok {
+					c.dataMap[id] = make(map[string]map[interface{}]int64)
+					c.dataRank[id] = make(map[string]objs.ItemList)
+				}
+				if _, ok := c.dataMap[id][category]; !ok {
+					c.dataMap[id][category] = make(map[interface{}]int64)
+					c.dataRank[id][category] = nil
+				}
+				c.dataMap[id][category][val]++
 			}
-			if _, ok := c.dataMap[id][category]; !ok {
-				c.dataMap[id][category] = make(map[interface{}]int64)
-				c.dataRank[id][category] = nil
-			}
-			c.dataMap[id][category][val]++
 		}
 	}
 
@@ -211,7 +211,7 @@ func (c *eventStatsCalculator) insert() error {
 	defer func() {
 		for _, file := range fm {
 			file.Close()
-			os.Remove(file.Name())
+			//os.Remove(file.Name())
 		}
 	}()
 

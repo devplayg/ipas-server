@@ -38,13 +38,13 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 		targetDate: targetDate,
 		tmpDir:     filepath.Join(engine.ProcessDir, "tmp"),
 		eventTableKeys: []string{
-			"evt",                                                                  // 이벤트 유형별 통계
+			"evt",                                                              // 이벤트 유형별 통계
 			"evt1_by_equip", "evt2_by_equip", "evt3_by_equip", "evt4_by_equip", // 이벤트 유형별 자산 통계(상세)
-			"evt1_by_org", "evt1_by_group", // 이벤트 유형(1)별 기관/그룹 통계
-			"evt2_by_org", "evt2_by_group", // 이벤트 유형(2)별 기관/그룹 통계
-			"evt3_by_org", "evt3_by_group", // 이벤트 유형(3)별 기관/그룹 통계
-			"evt4_by_org", "evt4_by_group", // 이벤트 유형(4)별 기관/그룹 통계
-			"equip", // 장비 통계
+			"evt1_by_group", // 이벤트 유형(1)별 그룹 통계
+			"evt2_by_group", // 이벤트 유형(2)별 그룹 통계
+			"evt3_by_group", // 이벤트 유형(3)별 그룹 통계
+			"evt4_by_group", // 이벤트 유형(4)별 그룹 통계
+			"equip",         // 장비 통계
 		},
 		statusTableKeys: []string{},
 	}
@@ -87,15 +87,6 @@ func (c *Calculator) createTables() error {
 	}
 	return nil
 }
-
-//CREATE TABLE `stats_equip` (
-//`date` datetime NOT NULL,
-//`equip_id` varchar(16) NOT NULL,
-//`data` varchar(64) NOT NULL,
-//KEY `ix_date` (`date`),
-//KEY `ix_equipid` (`date`,`equip_id`)
-//) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
 
 func (c *Calculator) Start() error {
 	if err := c.createTables(); err != nil {
