@@ -117,13 +117,12 @@ func (c *eventStatsCalculator) produceStats() error {
 		c.equipStats[e.EquipId][e.EventType]++
 		c.addToStats(&e, "evt", e.EventType)
 
-
 		// 이벤트 타입별 Src tag 통계
 		if e.EventType >= 0 && e.EventType <= 4 {
 			evt := strconv.Itoa(e.EventType)
 
 			c.addToStats(&e, "evt"+evt+"_by_equip", e.EquipId) // eventtype1~4
-			c.addToStats(&e, "evt"+evt+"_by_group", e.GroupId)
+			c.addToStats(&e, "evt"+evt+"_by_group", fmt.Sprintf("%d/%d", e.OrgId, e.GroupId))
 			//if e.GroupId > 0 {
 			//	c.addToStats(&e, "evt"+evt+"_by_group", e.GroupId)
 			//}
