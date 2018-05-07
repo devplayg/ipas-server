@@ -213,17 +213,26 @@ func (c *Classifier) classify(file *os.File) error {
 			//15	recv_date
 
 		} else if r[0] == "2" { // 데이터 타입이 "상태정보"이면
-			statusData += fmt.Sprintf("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-				r[3], orgId, groupId, r[4], r[6], r[7], r[8], r[9], r[10], r[11], r[1], r[2])
-			//1	date
-			//2	org_id
-			//3	group_id
-			//4	session_id
-			//5	equip_id
-			//6	latitude
-			//7	longitude
-			//8	speed
-			//9	snr
+			equipType := 0
+			if strings.HasPrefix(r[4], "PT") {
+				equipType = objs.PedestrianTag
+			} else if strings.HasPrefix(r[4], "VT") {
+				equipType = objs.VehicleTag
+			} else if strings.HasPrefix(r[4], "ZT") {
+				equipType = objs.ZoneTag
+			}
+
+			statusData += fmt.Sprintf("%s\t%d\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+				r[3], orgId, groupId, equipType, r[4], r[6], r[7], r[8], r[9], r[10], r[11], r[1], r[2])
+			//1		date
+			//2		org_id
+			//3		group_id
+			//4 	equip_type
+			//5		equip_id
+			//6		latitude
+			//7		longitude
+			//8		speed
+			//9		snr
 			//10	usim
 			//11	ip
 			//12	recv_date
@@ -275,7 +284,7 @@ func (c *Classifier) classify(file *os.File) error {
 		if err := c.insertIpasStatusDataToTemp(f.Name()); err != nil { // 상태정보에 사용
 			return err
 		}
-		if err := c.updateIpasStatus(f.Name()); err != nil { // 상태정보에 사용
+		if err := c.updateIpasStatus(); err != nil { // 상태정보에 사용
 			return err
 		}
 	}
@@ -329,6 +338,7 @@ func (c *Classifier) insertIpasStatusData(filename string) error {
 		INTO TABLE log_ipas_status
 		FIELDS TERMINATED BY '\t'
 		LINES TERMINATED BY '\n' 
+		(date, org_id, group_id, @dummy, session_id, equip_id, latitude, longitude, speed, snr, usim, ip, recv_date)
 	`
 	query = fmt.Sprintf(query, filepath.ToSlash(filename))
 	rs, err := c.engine.DB.Exec(query)
@@ -346,13 +356,12 @@ func (c *Classifier) insertIpasStatusDataToTemp(filename string) error {
 	// 상태정보를 임시 테이블에 게록
 	query = `
 		LOAD DATA LOCAL INFILE '%s'
-		INTO TABLE log_ipas_status_temp
+		INTO TABLE ast_ipas_temp
 		FIELDS TERMINATED BY '\t'
 		LINES TERMINATED BY '\n' 
-		(date,org_id,group_id,session_id,equip_id,latitude,longitude,speed,snr,usim,ip,recv_date)
-		SET file_name = '%s';
+		(date,org_id,group_id,equip_type,@dummy,equip_id,latitude,longitude,speed,snr,usim,ip)
 	`
-	query = fmt.Sprintf(query, filepath.ToSlash(filename), filepath.Base(filename))
+	query = fmt.Sprintf(query, filepath.ToSlash(filename))
 	_, err := c.engine.DB.Exec(query)
 	if err != nil {
 		return err
@@ -360,15 +369,12 @@ func (c *Classifier) insertIpasStatusDataToTemp(filename string) error {
 
 	return nil
 }
-
-func (c *Classifier) updateIpasStatus(fp string) error {
-	fname := filepath.Base(fp)
+func (c *Classifier) updateIpasStatus() error {
 	// 상태정보 업데이트
 	query := `
 		insert into ast_ipas(equip_id, org_id, equip_type, latitude, longitude, speed, snr, usim, ip, updated)
-		select equip_id, org_id, 0, latitude, longitude, speed, snr, usim, ip, date
-		from log_ipas_status_temp
-		where file_name = ?
+		select equip_id, org_id, equip_type, latitude, longitude, speed, snr, usim, ip, date
+		from ast_ipas_temp
 		on duplicate key update
 			org_id = values(org_id),
 			equip_type = values(equip_type),
@@ -380,13 +386,13 @@ func (c *Classifier) updateIpasStatus(fp string) error {
 			ip = values(ip),
 			updated = values(updated);
 	`
-	rs, err := c.engine.DB.Exec(query, fname)
+	rs, err := c.engine.DB.Exec(query)
 	if err == nil {
 		rowsAffected, _ := rs.RowsAffected()
 		log.Debugf("table=%s, affected_rows=%d", "status", rowsAffected)
 		// 테이블 비우기
-		query = "delete from log_ipas_status_temp where file_name = ?"
-		if _, err := c.engine.DB.Exec(query, fname); err != nil {
+		query = "truncate table ast_ipas_temp"
+		if _, err := c.engine.DB.Exec(query); err != nil {
 			log.Error(err)
 		}
 	}

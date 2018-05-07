@@ -58,6 +58,7 @@ func main() {
 	if err := engine.InitDatabase(); err != nil {
 		log.Fatal(err)
 	}
+	defer engine.DB.Close()
 
 	// 데이터 분류 시작
 	clf := classifier.NewClassifier(engine, *batchSize)
