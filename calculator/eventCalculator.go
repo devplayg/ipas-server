@@ -123,9 +123,6 @@ func (c *eventStatsCalculator) produceStats() error {
 
 			c.addToStats(&e, "evt"+evt+"_by_equip", e.EquipId) // eventtype1~4
 			c.addToStats(&e, "evt"+evt+"_by_group", fmt.Sprintf("%d/%d", e.OrgId, e.GroupId))
-			//if e.GroupId > 0 {
-			//	c.addToStats(&e, "evt"+evt+"_by_group", e.GroupId)
-			//}
 		}
 
 	}
