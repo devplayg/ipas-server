@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"github.com/devplayg/ipas-server"
 )
 
 type Stats interface {
@@ -120,7 +121,6 @@ func (c *eventStatsCalculator) produceStats() error {
 		// 이벤트 타입별 Src tag 통계
 		if e.EventType >= 0 && e.EventType <= 4 {
 			evt := strconv.Itoa(e.EventType)
-
 			c.addToStats(&e, "evt"+evt+"_by_equip", e.EquipId) // eventtype1~4
 			c.addToStats(&e, "evt"+evt+"_by_group", fmt.Sprintf("%d/%d", e.OrgId, e.GroupId))
 		}
@@ -238,7 +238,7 @@ func (c *eventStatsCalculator) insert() error {
 			num, _ := rs.RowsAffected()
 			log.Debugf("cal_type=%d, stats_type=1, category=%s, affected_rows=%d", c.calculator.calType, category, num)
 		} else {
-			log.Debug(err)
+			log.Error(err)
 			return err
 		}
 	}
@@ -258,9 +258,9 @@ func (c *eventStatsCalculator) insert() error {
 	rs, err := c.calculator.engine.DB.Exec(query)
 	if err == nil {
 		num, _ := rs.RowsAffected()
-		log.Debugf("cal_type=%d, stats_type=1, category=%s, affected_rows=%d", c.calculator.calType, "equip", num)
+		log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsEvent, "equip", num)
 	} else {
-		log.Debug(err)
+		log.Error(err)
 		return err
 	}
 	return nil
@@ -294,6 +294,30 @@ func NewStatusStats(calculator *Calculator, from, to, mark string) *statusStatsC
 func (c *statusStatsCalculator) Start(wg *sync.WaitGroup) error {
 	defer wg.Done()
 	start := time.Now()
+
+	log.Debug(c.from)
+	t1, _ := time.Parse(ipasserver.DateDefault, c.from)
+
+	log.Debugf("%s vs %s", t1.Format("2006-01-02"), time.Now().Add(-24*time.Hour).Format("2006-01-02"))
+
+
+	if c.calculator.calType == objs.RealtimeCalculator || t1.Format("2006-01-02") == time.Now().Add(-24*time.Hour).Format("2006-01-02") { // 실시간 통계 또는 어제 통계이면
+		query := `
+			insert into stats_equip_count
+			select ?, org_id, group_id, equip_type, count(*) count
+			from ast_ipas
+			group by org_id, group_id, equip_type;
+		`
+		rs, err := c.calculator.engine.DB.Exec(query, c.mark)
+		if err == nil {
+			num, _ := rs.RowsAffected()
+			log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsStatus, "equip_count", num)
+		} else {
+			log.Error(err)
+			return err
+		}
+	}
+
 	log.Debugf("cal_type=%d, stats_type=%d, exec_time=%3.1f", c.calculator.calType, StatsStatus, time.Since(start).Seconds())
 	return nil
 }
