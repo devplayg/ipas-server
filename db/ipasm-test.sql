@@ -105,3 +105,13 @@ CREATE TABLE `stats_equip_count` (
   KEY `ix_orgid` (`date`,`org_id`),
   KEY `ix_groupid` (`date`,`org_id`, `group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+
+CREATE TABLE IF NOT EXISTS stats_timeline (
+			date      datetime NOT NULL,
+			asset_id  int(11) NOT NULL,
+			time      datetime NOT NULL,
+			summary varchar(32) not null,
+
+			KEY       ix_date (date),
+			KEY       ix_assetid (date, asset_id)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8;
