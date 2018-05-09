@@ -91,3 +91,17 @@ insert into ast_code(asset_id, code) values(1, 'kr1'),(2, 'kr2'),(3, 'us1'),(4, 
 update log_ipas_event
 set date = date_add(date, interval datediff(now(), date) day)
 where date >= '2017-03-17 00:00:00';
+
+
+
+
+CREATE TABLE `stats_equip_count` (
+  `date` datetime NOT NULL,
+  `org_id` int(11) NOT NULL,
+  `group_id` int(11) NOT NULL,
+  `equip_type` int(11) NOT NULL COMMENT 'vt, zt, pt',
+  `count` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_orgid` (`date`,`org_id`),
+  KEY `ix_groupid` (`date`,`org_id`, `group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8

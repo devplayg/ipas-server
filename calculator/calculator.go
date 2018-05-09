@@ -13,8 +13,9 @@ import (
 const (
 	RootId = -1
 
-	StatsEvent  = 1
-	StatsStatus = 2
+	// 이벤트 종류
+	StatsEvent  = 1 // IPAS 이벤트 통계
+	StatsStatus = 2 // IPAS 상태 통계
 )
 
 type Calculator struct {
@@ -23,10 +24,10 @@ type Calculator struct {
 	interval        time.Duration      // 실행 주기(실시간 모드에서 사용)
 	calType         int                // 산출기 타입(실시간, 특정날짜, 특정기간)
 	targetDate      string             // 대상 날짜
-	memberAssets    map[int][]int
-	eventTableKeys  []string
-	statusTableKeys []string
-	tmpDir          string
+	memberAssets    map[int][]int      // 사용자 자산
+	eventTableKeys  []string           // 이벤트 통계 테이블
+	statusTableKeys []string           // 상태 통계 테이블
+	tmpDir          string             // 임시 디렉토리
 }
 
 func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, calType int, targetDate string) *Calculator {
@@ -38,18 +39,22 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 		targetDate: targetDate,
 		tmpDir:     filepath.Join(engine.ProcessDir, "tmp"),
 		eventTableKeys: []string{
-			"evt",                                                              // 이벤트 유형별 통계
-			"evt1_by_equip", "evt2_by_equip", "evt3_by_equip", "evt4_by_equip", // 이벤트 유형별 자산 통계(상세)
-			"evt1_by_group", // 이벤트 유형(1)별 그룹 통계
-			"evt2_by_group", // 이벤트 유형(2)별 그룹 통계
-			"evt3_by_group", // 이벤트 유형(3)별 그룹 통계
-			"evt4_by_group", // 이벤트 유형(4)별 그룹 통계
 			"equip",         // 장비 통계
+			"evt",           // 이벤트 유형별 통계
+			"evt1_by_equip", // 이벤트 유형별(1~4) 장비 통계(상세)
+			"evt2_by_equip",
+			"evt3_by_equip",
+			"evt4_by_equip",
+			"evt1_by_group", // 이벤트 유형(1~4)별 그룹 통계
+			"evt2_by_group",
+			"evt3_by_group",
+			"evt4_by_group",
 		},
-		statusTableKeys: []string{},
+		statusTableKeys: []string{"equip_count"},
 	}
 }
 
+// 이젠 통계 삭제
 func (c *Calculator) removeStats(date string, isToday bool) error {
 	query := "delete from stats_%s where date >= ? and date <= ?"
 	if isToday {
@@ -76,7 +81,7 @@ func (c *Calculator) createTables() error {
 			count     int(10) unsigned NOT NULL,
 			rank      int(10) unsigned NOT NULL,
 			KEY       ix_date (date),
-			KEY       ix_groupid (date, asset_id)
+			KEY       ix_assetid (date, asset_id)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 	`
 	for _, k := range append(c.eventTableKeys, c.statusTableKeys...) {
@@ -137,7 +142,7 @@ func (c *Calculator) Start() error {
 
 	} else if c.calType == objs.RealtimeCalculator { // 실시간 통계(당일)
 		go func() {
-			log.Debugf("cal_type=%d, inverval=%s", c.calType, c.interval.String())
+			log.Debugf("cal_type=%d, interval=%s", c.calType, c.interval.String())
 			for {
 				t := time.Now()
 
