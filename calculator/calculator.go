@@ -2,12 +2,16 @@ package calculator
 
 import (
 	"fmt"
+	"net/http"
 	"github.com/devplayg/ipas-server"
 	"github.com/devplayg/ipas-server/objs"
 	log "github.com/sirupsen/logrus"
 	"path/filepath"
 	"sync"
 	"time"
+	"github.com/gorilla/mux"
+	"strconv"
+	"encoding/json"
 )
 
 const (
@@ -28,6 +32,7 @@ type Calculator struct {
 	eventTableKeys  []string           // 이벤트 통계 테이블
 	statusTableKeys []string           // 상태 통계 테이블
 	tmpDir          string             // 임시 디렉토리
+	eventRank       objs.DataRank
 }
 
 func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, calType int, targetDate string) *Calculator {
@@ -141,6 +146,13 @@ func (c *Calculator) Start() error {
 		//)
 
 	} else if c.calType == objs.RealtimeCalculator { // 실시간 통계(당일)
+		//router := mux.NewRouter()
+		//router.PathPrefix("/debug").Handler(http.DefaultServeMux)
+		//router.HandleFunc("/stats/{groupId:-?[0-9]+}/{category}/{top:[0-9]+}", c.rankHandler)
+		//go func() {
+		//	log.Fatal(http.ListenAndServe(":8080", router))
+		//}()
+
 		go func() {
 			log.Debugf("cal_type=%d, interval=%s", c.calType, c.interval.String())
 			for {
@@ -237,4 +249,29 @@ func (c *Calculator) getMemberAssets() (map[int][]int, error) {
 	}
 
 	return m, nil
+}
+
+
+func (c *Calculator) rankHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	groupId, _ := strconv.Atoi(vars["groupId"])
+	top, _ := strconv.Atoi(vars["top"])
+
+	list := c.getRank(groupId, vars["category"], top)
+	buf, _ := json.Marshal(list)
+	w.Write(buf)
+}
+
+func (c *Calculator) getRank(groupId int, category string, top int) objs.ItemList {
+	if _, ok := c.eventRank[groupId]; ok {
+		if list, ok := c.eventRank[groupId][category]; ok {
+			if top > 0 && len(list) > top {
+				return list[:top]
+			} else {
+				return list
+			}
+		}
+	}
+	return nil
 }

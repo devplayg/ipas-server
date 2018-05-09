@@ -2,6 +2,7 @@ package calculator
 
 import (
 	"fmt"
+	"github.com/devplayg/ipas-server"
 	"github.com/devplayg/ipas-server/objs"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -9,7 +10,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-	"github.com/devplayg/ipas-server"
 )
 
 type Stats interface {
@@ -40,6 +40,7 @@ type eventStatsCalculator struct {
 	from       string
 	to         string
 	mark       string
+	mutex sync.Mutex
 }
 
 func NewEventStats(calculator *Calculator, from, to, mark string) *eventStatsCalculator {
@@ -59,11 +60,20 @@ func NewEventStats(calculator *Calculator, from, to, mark string) *eventStatsCal
 func (c *eventStatsCalculator) Start(wg *sync.WaitGroup) error {
 	defer wg.Done()
 	start := time.Now()
+
+	// 통계 생성
 	if err := c.produceStats(); err != nil {
 		log.Error(err)
 		return err
 	}
 
+	if c.calculator.calType == objs.RealtimeCalculator {
+		c.mutex.Lock()
+		c.calculator.eventRank = c.dataRank
+		c.mutex.Unlock()
+	}
+
+	// DB 입력
 	if err := c.insert(); err != nil {
 		log.Error(err)
 		return err
@@ -294,19 +304,14 @@ func NewStatusStats(calculator *Calculator, from, to, mark string) *statusStatsC
 func (c *statusStatsCalculator) Start(wg *sync.WaitGroup) error {
 	defer wg.Done()
 	start := time.Now()
-
-	log.Debug(c.from)
 	t1, _ := time.Parse(ipasserver.DateDefault, c.from)
-
-	log.Debugf("%s vs %s", t1.Format("2006-01-02"), time.Now().Add(-24*time.Hour).Format("2006-01-02"))
-
 
 	if c.calculator.calType == objs.RealtimeCalculator || t1.Format("2006-01-02") == time.Now().Add(-24*time.Hour).Format("2006-01-02") { // 실시간 통계 또는 어제 통계이면
 		query := `
 			insert into stats_equip_count
 			select ?, org_id, group_id, equip_type, count(*) count
 			from ast_ipas
-			group by org_id, group_id, equip_type;
+			group by org_id, group_id, equip_type
 		`
 		rs, err := c.calculator.engine.DB.Exec(query, c.mark)
 		if err == nil {
