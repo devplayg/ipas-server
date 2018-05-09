@@ -34,4 +34,5 @@ type IpasEvent struct {
 	EventType int
 	EquipId   string
 	Targets   string
+	Timeline string
 }

@@ -31,16 +31,17 @@ func NewStats(calculator *Calculator, stats int, from, to, mark string) Stats {
 // ---------------------------------------------------------------------------------------------
 
 type eventStatsCalculator struct {
-	calculator *Calculator
-	wg         *sync.WaitGroup
-	dataMap    objs.DataMap
-	dataRank   objs.DataRank
-	equipStats map[string]map[int]int
-	tables     map[string]bool
-	from       string
-	to         string
-	mark       string
-	mutex sync.Mutex
+	calculator    *Calculator
+	wg            *sync.WaitGroup
+	dataMap       objs.DataMap
+	dataRank      objs.DataRank
+	equipStats    map[string]map[int]int
+	timelineStats map[int]map[string]map[int]int
+	tables        map[string]bool
+	from          string
+	to            string
+	mark          string
+	mutex         sync.Mutex
 }
 
 func NewEventStats(calculator *Calculator, from, to, mark string) *eventStatsCalculator {
@@ -68,9 +69,9 @@ func (c *eventStatsCalculator) Start(wg *sync.WaitGroup) error {
 	}
 
 	if c.calculator.calType == objs.RealtimeCalculator {
-		c.mutex.Lock()
-		c.calculator.eventRank = c.dataRank
-		c.mutex.Unlock()
+		//c.mutex.Lock()
+		//c.calculator.eventRank = c.dataRank
+		//c.mutex.Unlock()
 	}
 
 	// DB 입력
@@ -88,10 +89,11 @@ func (c *eventStatsCalculator) produceStats() error {
 	c.dataMap[RootId] = make(map[string]map[interface{}]int64)
 	c.dataRank[RootId] = make(map[string]objs.ItemList)
 	c.equipStats = make(map[string]map[int]int)
+	c.timelineStats = make(map[int]map[string]map[int]int)
 
 	// 데이터 조회
 	query := `
-		select org_id, group_id, event_type, equip_id, targets
+		select org_id, group_id, event_type, equip_id, targets, concat(substr(date, 1, 13), ':00:00') hour
 		from log_ipas_event
 		where date between ? and ?
 	`
@@ -109,23 +111,13 @@ func (c *eventStatsCalculator) produceStats() error {
 		e := objs.IpasEvent{}
 
 		// 데이터 읽기
-		err := rows.Scan(&e.OrgId, &e.GroupId, &e.EventType, &e.EquipId, &e.Targets)
+		err := rows.Scan(&e.OrgId, &e.GroupId, &e.EventType, &e.EquipId, &e.Targets, &e.Timeline)
 		if err != nil {
 			log.Error(err)
 			return err
 		}
-		// 장비 추적통계 초기화
-		if _, ok := c.equipStats[e.EquipId]; !ok {
-			c.equipStats[e.EquipId] = map[int]int{
-				objs.StartEvent:     0,
-				objs.ShockEvent:     0,
-				objs.SpeedingEvent:  0,
-				objs.ProximityEvent: 0,
-			}
-		}
 
 		// 이벤트 유형 통계
-		c.equipStats[e.EquipId][e.EventType]++
 		c.addToStats(&e, "evt", e.EventType)
 
 		// 이벤트 타입별 Src tag 통계
@@ -135,6 +127,19 @@ func (c *eventStatsCalculator) produceStats() error {
 			c.addToStats(&e, "evt"+evt+"_by_group", fmt.Sprintf("%d/%d", e.OrgId, e.GroupId))
 		}
 
+		// 타임라인 통계
+		c.addToTimelineStats(&e)
+
+		// 장비(Tag) 이벤트 통계
+		if _, ok := c.equipStats[e.EquipId]; !ok {
+			c.equipStats[e.EquipId] = map[int]int{
+				objs.StartEvent:     0,
+				objs.ShockEvent:     0,
+				objs.SpeedingEvent:  0,
+				objs.ProximityEvent: 0,
+			}
+		}
+		c.equipStats[e.EquipId][e.EventType]++
 	}
 	err = rows.Err()
 	if err != nil {
@@ -154,6 +159,54 @@ func (c *eventStatsCalculator) produceStats() error {
 				c.dataRank[id][category] = objs.DetermineRankings(data, c.calculator.top)
 			}
 		}
+	}
+
+	return nil
+}
+func (c *eventStatsCalculator) addToTimelineStats(e *objs.IpasEvent) error {
+
+	// 전체 통계
+	if _, ok := c.timelineStats[RootId]; !ok {
+		c.timelineStats[RootId] = make(map[string]map[int]int)
+	}
+	if _, ok := c.timelineStats[RootId][e.Timeline]; !ok {
+		c.timelineStats[RootId][e.Timeline] = map[int]int{
+			objs.StartEvent:     0,
+			objs.ShockEvent:     0,
+			objs.SpeedingEvent:  0,
+			objs.ProximityEvent: 0,
+		}
+	}
+	c.timelineStats[RootId][e.Timeline][e.EventType] += 1
+
+	// 기관 통계
+	if _, ok := c.timelineStats[e.OrgId]; !ok {
+		c.timelineStats[e.OrgId] = make(map[string]map[int]int)
+	}
+	if _, ok := c.timelineStats[e.OrgId][e.Timeline]; !ok {
+		c.timelineStats[e.OrgId][e.Timeline] = map[int]int{
+			objs.StartEvent:     0,
+			objs.ShockEvent:     0,
+			objs.SpeedingEvent:  0,
+			objs.ProximityEvent: 0,
+		}
+	}
+	c.timelineStats[e.OrgId][e.Timeline][e.EventType]++
+
+	if e.GroupId > 0 {
+		// 그룹 통계
+		if _, ok := c.timelineStats[e.GroupId]; !ok {
+			c.timelineStats[e.GroupId] = make(map[string]map[int]int)
+		}
+		if _, ok := c.timelineStats[e.GroupId][e.Timeline]; !ok {
+			c.timelineStats[e.GroupId][e.Timeline] = map[int]int{
+				objs.StartEvent:     0,
+				objs.ShockEvent:     0,
+				objs.SpeedingEvent:  0,
+				objs.ProximityEvent: 0,
+			}
+		}
+		c.timelineStats[e.GroupId][e.Timeline][e.EventType]++
 	}
 
 	return nil
@@ -243,10 +296,10 @@ func (c *eventStatsCalculator) insert() error {
 	for category, file := range fm {
 		file.Close()
 		query := fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_%s", file.Name(), category)
-		rs, err := c.calculator.engine.DB.Exec(query)
+		_, err := c.calculator.engine.DB.Exec(query)
 		if err == nil {
-			num, _ := rs.RowsAffected()
-			log.Debugf("cal_type=%d, stats_type=1, category=%s, affected_rows=%d", c.calculator.calType, category, num)
+			//num, _ := rs.RowsAffected()
+			//log.Debugf("cal_type=%d, stats_type=1, category=%s, affected_rows=%d", c.calculator.calType, category, num)
 		} else {
 			log.Error(err)
 			return err
@@ -260,15 +313,38 @@ func (c *eventStatsCalculator) insert() error {
 	}
 	defer os.Remove(tempFile.Name())
 	for tag, m := range c.equipStats {
-		line := fmt.Sprintf("%s\t%s\t%d,%d,%d,%d\n", c.mark, tag, m[1], m[2], m[3], m[4])
+		line := fmt.Sprintf("%s\t%s\t%d,%d,%d,%d\n", c.mark, tag, m[objs.StartEvent], m[objs.ShockEvent], m[objs.SpeedingEvent], m[objs.ProximityEvent])
 		tempFile.WriteString(line)
 	}
 	tempFile.Close()
 	query := fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_equip", tempFile.Name())
-	rs, err := c.calculator.engine.DB.Exec(query)
+	_, err = c.calculator.engine.DB.Exec(query)
 	if err == nil {
-		num, _ := rs.RowsAffected()
-		log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsEvent, "equip", num)
+		//num, _ := rs.RowsAffected()
+		//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsEvent, "equip", num)
+	} else {
+		log.Error(err)
+		return err
+	}
+
+	// 타임라인 통계
+	tempTimelineFile, err := ioutil.TempFile(c.calculator.tmpDir, "stats_timeline_")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tempTimelineFile.Name())
+	for assetId, timeline := range c.timelineStats { //  map[int]map[string]map[int]int
+		for time, m := range timeline {
+			line := fmt.Sprintf("%s\t%d\t%s\t%d,%d,%d,%d\n", c.mark, assetId, time, m[objs.StartEvent], m[objs.ShockEvent], m[objs.SpeedingEvent], m[objs.ProximityEvent])
+			tempTimelineFile.WriteString(line)
+		}
+	}
+	tempTimelineFile.Close()
+	query = fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_timeline", tempTimelineFile.Name())
+	_, err = c.calculator.engine.DB.Exec(query)
+	if err == nil {
+		//num, _ := rs.RowsAffected()
+		//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsEvent, "timeline", num)
 	} else {
 		log.Error(err)
 		return err
@@ -313,10 +389,10 @@ func (c *statusStatsCalculator) Start(wg *sync.WaitGroup) error {
 			from ast_ipas
 			group by org_id, group_id, equip_type
 		`
-		rs, err := c.calculator.engine.DB.Exec(query, c.mark)
+		_, err := c.calculator.engine.DB.Exec(query, c.mark)
 		if err == nil {
-			num, _ := rs.RowsAffected()
-			log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsStatus, "equip_count", num)
+			//num, _ := rs.RowsAffected()
+			//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsStatus, "equip_count", num)
 		} else {
 			log.Error(err)
 			return err

@@ -1,17 +1,17 @@
 package calculator
 
 import (
+	"encoding/json"
 	"fmt"
-	"net/http"
 	"github.com/devplayg/ipas-server"
 	"github.com/devplayg/ipas-server/objs"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
-	"github.com/gorilla/mux"
-	"strconv"
-	"encoding/json"
 )
 
 const (
@@ -46,6 +46,7 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 		eventTableKeys: []string{
 			"equip",         // 장비 통계
 			"evt",           // 이벤트 유형별 통계
+			"timeline",      // 타임라인
 			"evt1_by_equip", // 이벤트 유형별(1~4) 장비 통계(상세)
 			"evt2_by_equip",
 			"evt3_by_equip",
@@ -250,7 +251,6 @@ func (c *Calculator) getMemberAssets() (map[int][]int, error) {
 
 	return m, nil
 }
-
 
 func (c *Calculator) rankHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
