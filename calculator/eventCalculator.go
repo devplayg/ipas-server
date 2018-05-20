@@ -35,7 +35,7 @@ type eventStatsCalculator struct {
 	wg            *sync.WaitGroup
 	dataMap       objs.DataMap
 	dataRank      objs.DataRank
-	equipStats    map[string]map[int]int
+	equipStats    map[int]map[string]map[int]int
 	timelineStats map[int]map[string]map[int]int
 	tables        map[string]bool
 	from          string
@@ -88,7 +88,7 @@ func (c *eventStatsCalculator) produceStats() error {
 	// 통계 구조체 초기화
 	c.dataMap[RootId] = make(map[string]map[interface{}]int64)
 	c.dataRank[RootId] = make(map[string]objs.ItemList)
-	c.equipStats = make(map[string]map[int]int)
+	c.equipStats = make(map[int]map[string]map[int]int)
 	c.timelineStats = make(map[int]map[string]map[int]int)
 
 	// 데이터 조회
@@ -131,15 +131,18 @@ func (c *eventStatsCalculator) produceStats() error {
 		c.addToTimelineStats(&e)
 
 		// 장비(Tag) 이벤트 통계
-		if _, ok := c.equipStats[e.EquipId]; !ok {
-			c.equipStats[e.EquipId] = map[int]int{
+		if _, ok := c.equipStats[e.OrgId]; !ok {
+			c.equipStats[e.OrgId] = make(map[string]map[int]int)
+		}
+		if _, ok := c.equipStats[e.OrgId][e.EquipId]; !ok {
+			c.equipStats[e.OrgId][e.EquipId] = map[int]int{
 				objs.StartEvent:     0,
 				objs.ShockEvent:     0,
 				objs.SpeedingEvent:  0,
 				objs.ProximityEvent: 0,
 			}
 		}
-		c.equipStats[e.EquipId][e.EventType]++
+		c.equipStats[e.OrgId][e.EquipId][e.EventType]++
 	}
 	err = rows.Err()
 	if err != nil {
@@ -306,18 +309,20 @@ func (c *eventStatsCalculator) insert() error {
 		}
 	}
 
-	// Tag 통계
+	// 장비별 추이 통계
 	tempFile, err := ioutil.TempFile(c.calculator.tmpDir, "stats_equip_")
 	if err != nil {
 		return err
 	}
 	defer os.Remove(tempFile.Name())
-	for tag, m := range c.equipStats {
-		line := fmt.Sprintf("%s\t%s\t%d,%d,%d,%d\n", c.mark, tag, m[objs.StartEvent], m[objs.ShockEvent], m[objs.SpeedingEvent], m[objs.ProximityEvent])
-		tempFile.WriteString(line)
+	for orgId, m := range c.equipStats {
+		for tag, m2 := range m {
+			line := fmt.Sprintf("%s\t%d\t%s\t%d,%d,%d,%d\n", c.mark, orgId, tag, m2[objs.StartEvent], m2[objs.ShockEvent], m2[objs.SpeedingEvent], m2[objs.ProximityEvent])
+			tempFile.WriteString(line)
+		}
 	}
 	tempFile.Close()
-	query := fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_equip", tempFile.Name())
+	query := fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_equip_trend", tempFile.Name())
 	_, err = c.calculator.engine.DB.Exec(query)
 	if err == nil {
 		//num, _ := rs.RowsAffected()
@@ -383,6 +388,7 @@ func (c *statusStatsCalculator) Start(wg *sync.WaitGroup) error {
 	t1, _ := time.Parse(ipasserver.DateDefault, c.from)
 
 	if c.calculator.calType == objs.RealtimeCalculator || t1.Format("2006-01-02") == time.Now().Add(-24*time.Hour).Format("2006-01-02") { // 실시간 통계 또는 어제 통계이면
+		// 일별 자산추이 개수 기록
 		query := `
 			insert into stats_equip_count
 			select ?, org_id, group_id, equip_type, count(*) count
@@ -397,6 +403,27 @@ func (c *statusStatsCalculator) Start(wg *sync.WaitGroup) error {
 			log.Error(err)
 			return err
 		}
+	}
+
+	// 일별 시동회수 기록
+	query := `
+		insert into stats_equip_active
+		select ?, org_id, equip_id, count(*) count
+		from (
+			select org_id, equip_id, session_id
+			from log_ipas_status
+			where date >= ? and date <= ?
+			group by org_id, equip_id, session_id
+		) t
+		group by org_id, equip_id	
+	`
+	_, err := c.calculator.engine.DB.Exec(query, c.mark, c.from, c.to)
+	if err == nil {
+		//num, _ := rs.RowsAffected()
+		//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsStatus, "equip_active", num)
+	} else {
+		log.Error(err)
+		return err
 	}
 
 	log.Debugf("cal_type=%d, stats_type=%d, exec_time=%3.1f", c.calculator.calType, StatsStatus, time.Since(start).Seconds())
