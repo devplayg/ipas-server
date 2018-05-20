@@ -44,9 +44,9 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 		targetDate: targetDate,
 		tmpDir:     filepath.Join(engine.ProcessDir, "tmp"),
 		eventTableKeys: []string{
-			"equip",         // 장비 통계
-			"evt",           // 이벤트 유형별 통계
+			"equip_trend",   // 장비 통계
 			"timeline",      // 타임라인
+			"evt",           // 이벤트 유형별 통계
 			"evt1_by_equip", // 이벤트 유형별(1~4) 장비 통계(상세)
 			"evt2_by_equip",
 			"evt3_by_equip",
@@ -56,7 +56,10 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 			"evt3_by_group",
 			"evt4_by_group",
 		},
-		statusTableKeys: []string{"equip_count"},
+		statusTableKeys: []string{
+			"equip_count",  // 일별 자산 카운팅
+			"equip_active", // 일별 자산 시동 카운팅(장비 활용도 분석용)
+		},
 	}
 }
 
@@ -222,7 +225,7 @@ func (c *Calculator) getMemberAssets() (map[int][]int, error) {
 		assetId  int
 	)
 
-	// Administrator는 모든 자산 데이터에 대한 접근 권한을 가짐
+	// Administrator 는 모든 자산 데이터에 대한 접근 권한을 가짐
 	query := `
 		select member_id, asset_id
 		from mbr_asset

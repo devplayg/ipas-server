@@ -20,7 +20,8 @@
 --
 
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `ipasm` /*!40100 DEFAULT CHARACTER SET utf8 */;
--- mysqldump -u root --skip-add-drop-table -d -B -p  ipasm > ipasm-tables.sql
+--  mysqldump -u root --skip-add-drop-table -d -B  ipasm > ipasm-tables.sql
+
 USE `ipasm`;
 
 --
@@ -354,170 +355,68 @@ CREATE TABLE `mbr_password` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `stats_equip`
+-- Table structure for table `stats_equip_active`
 --
 
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_equip` (
+CREATE TABLE `stats_equip_active` (
   `date` datetime NOT NULL,
+  `org_id` int(11) NOT NULL,
+  `equip_id` varchar(16) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_equipid` (`date`,`org_id`,`equip_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_equip_count`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_equip_count` (
+  `date` datetime NOT NULL,
+  `org_id` int(11) NOT NULL,
+  `group_id` int(11) NOT NULL,
+  `equip_type` int(11) NOT NULL COMMENT 'vt, zt, pt',
+  `count` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_orgid` (`date`,`org_id`),
+  KEY `ix_groupid` (`date`,`org_id`,`group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_equip_trend`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_equip_trend` (
+  `date` datetime NOT NULL,
+  `org_id` int(11) NOT NULL,
   `equip_id` varchar(16) NOT NULL,
   `data` varchar(64) NOT NULL,
   KEY `ix_date` (`date`),
-  KEY `ix_equipid` (`date`,`equip_id`)
+  KEY `ix_equipid` (`date`,`org_id`,`equip_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `stats_evt`
+-- Table structure for table `stats_timeline`
 --
 
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_evt` (
+CREATE TABLE `stats_timeline` (
   `date` datetime NOT NULL,
   `asset_id` int(11) NOT NULL,
-  `item` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
+  `time` datetime NOT NULL,
+  `summary` varchar(32) NOT NULL,
   KEY `ix_date` (`date`),
-  KEY `ix_groupid` (`date`,`asset_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stats_evt1_by_equip`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_evt1_by_equip` (
-  `date` datetime NOT NULL,
-  `asset_id` int(11) NOT NULL,
-  `item` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
-  KEY `ix_date` (`date`),
-  KEY `ix_groupid` (`date`,`asset_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stats_evt1_by_group`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_evt1_by_group` (
-  `date` datetime NOT NULL,
-  `asset_id` int(11) NOT NULL,
-  `item` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
-  KEY `ix_date` (`date`),
-  KEY `ix_groupid` (`date`,`asset_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stats_evt2_by_equip`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_evt2_by_equip` (
-  `date` datetime NOT NULL,
-  `asset_id` int(11) NOT NULL,
-  `item` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
-  KEY `ix_date` (`date`),
-  KEY `ix_groupid` (`date`,`asset_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stats_evt2_by_group`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_evt2_by_group` (
-  `date` datetime NOT NULL,
-  `asset_id` int(11) NOT NULL,
-  `item` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
-  KEY `ix_date` (`date`),
-  KEY `ix_groupid` (`date`,`asset_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stats_evt3_by_equip`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_evt3_by_equip` (
-  `date` datetime NOT NULL,
-  `asset_id` int(11) NOT NULL,
-  `item` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
-  KEY `ix_date` (`date`),
-  KEY `ix_groupid` (`date`,`asset_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stats_evt3_by_group`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_evt3_by_group` (
-  `date` datetime NOT NULL,
-  `asset_id` int(11) NOT NULL,
-  `item` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
-  KEY `ix_date` (`date`),
-  KEY `ix_groupid` (`date`,`asset_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stats_evt4_by_equip`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_evt4_by_equip` (
-  `date` datetime NOT NULL,
-  `asset_id` int(11) NOT NULL,
-  `item` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
-  KEY `ix_date` (`date`),
-  KEY `ix_groupid` (`date`,`asset_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stats_evt4_by_group`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_evt4_by_group` (
-  `date` datetime NOT NULL,
-  `asset_id` int(11) NOT NULL,
-  `item` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
-  KEY `ix_date` (`date`),
-  KEY `ix_groupid` (`date`,`asset_id`)
+  KEY `ix_assetid` (`date`,`asset_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -548,4 +447,4 @@ CREATE TABLE `sys_config` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-05-07 21:59:57
+-- Dump completed on 2018-05-20 10:04:03
