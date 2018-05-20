@@ -57,8 +57,8 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 			"evt4_by_group",
 		},
 		statusTableKeys: []string{
-			"equip_count",  // 일별 자산 카운팅
-			"equip_active", // 일별 자산 시동 카운팅(장비 활용도 분석용)
+			"equip_count", // 일별 자산 카운팅
+			"activated",   // 기관/그룹별 자산운용 카운팅(장비 활용도 분석용)
 		},
 	}
 }

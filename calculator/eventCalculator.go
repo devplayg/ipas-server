@@ -407,20 +407,20 @@ func (c *statusStatsCalculator) Start(wg *sync.WaitGroup) error {
 
 	// 일별 시동회수 기록
 	query := `
-		insert into stats_equip_active
-		select ?, org_id, equip_id, count(*) count
+		insert into stats_activated
+		select date, org_id, group_id, count(*)
 		from (
-			select org_id, equip_id, session_id
+			select ? date, org_id, group_id, session_id
 			from log_ipas_status
 			where date >= ? and date <= ?
-			group by org_id, equip_id, session_id
+			group by org_id, group_id, session_id
 		) t
-		group by org_id, equip_id	
+		group by org_id, group_id
 	`
 	_, err := c.calculator.engine.DB.Exec(query, c.mark, c.from, c.to)
 	if err == nil {
 		//num, _ := rs.RowsAffected()
-		//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsStatus, "equip_active", num)
+		//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsStatus, "activated", num)
 	} else {
 		log.Error(err)
 		return err
