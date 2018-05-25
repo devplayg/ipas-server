@@ -47,6 +47,7 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 			"equip_trend",   // 장비 통계
 			"timeline",      // 타임라인
 			"timeline2",     // 타임라인
+			"shocklinks",     // 타임라인
 			"evt",           // 이벤트 유형별 통계
 			"evt1_by_equip", // 이벤트 유형별(1~4) 장비 통계(상세)
 			"evt2_by_equip",

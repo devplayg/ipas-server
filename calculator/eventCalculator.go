@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -31,18 +32,19 @@ func NewStats(calculator *Calculator, stats int, from, to, mark string) Stats {
 // ---------------------------------------------------------------------------------------------
 
 type eventStatsCalculator struct {
-	calculator     *Calculator
-	wg             *sync.WaitGroup
-	dataMap        objs.DataMap
-	dataRank       objs.DataRank
-	equipStats     map[int]map[string]map[int]int
-	timelineStats  map[int]map[string]map[int]int
-	timeline2Stats map[int]map[int]map[string]map[int]int // 개발 중(org_id, group_id, hour, evt1~4)
-	tables         map[string]bool
-	from           string
-	to             string
-	mark           string
-	mutex          sync.Mutex
+	calculator      *Calculator
+	wg              *sync.WaitGroup
+	dataMap         objs.DataMap
+	dataRank        objs.DataRank
+	equipStats      map[int]map[string]map[int]int
+	timelineStats   map[int]map[string]map[int]int
+	timeline2Stats  map[int]map[int]map[string]map[int]int // 개발 중(org_id, group_id, hour, evt1~4)
+	shockLinksStats map[int]map[int][]string
+	tables          map[string]bool
+	from            string
+	to              string
+	mark            string
+	mutex           sync.Mutex
 }
 
 func NewEventStats(calculator *Calculator, from, to, mark string) *eventStatsCalculator {
@@ -92,6 +94,7 @@ func (c *eventStatsCalculator) produceStats() error {
 	c.equipStats = make(map[int]map[string]map[int]int)
 	c.timelineStats = make(map[int]map[string]map[int]int)
 	c.timeline2Stats = make(map[int]map[int]map[string]map[int]int)
+	c.shockLinksStats = make(map[int]map[int][]string)
 
 	// 데이터 조회
 	query := `
@@ -127,6 +130,13 @@ func (c *eventStatsCalculator) produceStats() error {
 			evt := strconv.Itoa(e.EventType)
 			c.addToStats(&e, "evt"+evt+"_by_equip", e.EquipId) // eventtype1~4
 			c.addToStats(&e, "evt"+evt+"_by_group", fmt.Sprintf("%d/%d", e.OrgId, e.GroupId))
+
+			if e.EventType == objs.ShockEvent {
+				if e.OrgId == 1 && e.GroupId == 7 {
+					log.Debugf("%s - %s", e.EquipId, e.Targets)
+				}
+				c.addToShockLinksStats(&e)
+			}
 		}
 
 		// 타임라인 통계
@@ -236,6 +246,20 @@ func (c *eventStatsCalculator) addToTimeline2Stats(e *objs.IpasEvent) error {
 		}
 	}
 	c.timeline2Stats[e.OrgId][e.GroupId][e.Timeline][e.EventType] += 1
+
+	return nil
+}
+
+func (c *eventStatsCalculator) addToShockLinksStats(e *objs.IpasEvent) error {
+
+	if _, ok := c.shockLinksStats[e.OrgId]; !ok {
+		c.shockLinksStats[e.OrgId] = make(map[int][]string)
+	}
+
+	if _, ok := c.shockLinksStats[e.OrgId][e.GroupId]; !ok {
+		c.shockLinksStats[e.OrgId][e.GroupId] = make([]string, 0)
+	}
+	c.shockLinksStats[e.OrgId][e.GroupId] = append(c.shockLinksStats[e.OrgId][e.GroupId], fmt.Sprintf("%s/%s", e.EquipId, e.Targets))
 
 	return nil
 }
@@ -380,7 +404,6 @@ func (c *eventStatsCalculator) insert() error {
 		return err
 	}
 
-
 	// 타임라인2 통계
 	tempTimeline2File, err := ioutil.TempFile(c.calculator.tmpDir, "stats_timeline2_")
 	if err != nil {
@@ -397,6 +420,29 @@ func (c *eventStatsCalculator) insert() error {
 	}
 	tempTimeline2File.Close()
 	query = fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_timeline2", tempTimeline2File.Name())
+	_, err = c.calculator.engine.DB.Exec(query)
+	if err == nil {
+		//num, _ := rs.RowsAffected()
+		//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsEvent, "timeline", num)
+	} else {
+		log.Error(err)
+		return err
+	}
+
+	// Shock links
+	tempShowLinksFile, err := ioutil.TempFile(c.calculator.tmpDir, "stats_shocklinks_")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tempShowLinksFile.Name())
+	for orgId, m := range c.shockLinksStats {
+		for groupId, arr := range m {
+			line := fmt.Sprintf("%s\t%d\t%d\t%s\t%d\t%d\t%d\t%d\n", c.mark, orgId, groupId, strings.Join(arr, ","))
+			tempShowLinksFile.WriteString(line)
+		}
+	}
+	tempShowLinksFile.Close()
+	query = fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_shocklinks", tempShowLinksFile.Name())
 	_, err = c.calculator.engine.DB.Exec(query)
 	if err == nil {
 		//num, _ := rs.RowsAffected()
