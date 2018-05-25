@@ -24,9 +24,11 @@ func main() {
 
 	// 옵션 설정
 	var (
-		version = ipasserver.CmdFlags.Bool("version", false, "Version")
-		count   = ipasserver.CmdFlags.Int("count", 10, "Event count")
-		addr    = ipasserver.CmdFlags.String("addr", "127.0.0.1:8080", "Address")
+		version  = ipasserver.CmdFlags.Bool("version", false, "Version")
+		count    = ipasserver.CmdFlags.Int("count", 10, "Event count")
+		addr     = ipasserver.CmdFlags.String("addr", "127.0.0.1:8080", "Address")
+		loop     = ipasserver.CmdFlags.Bool("loop", false, "Loop")
+		interval = ipasserver.CmdFlags.Duration("interval", 10*time.Second, "Interval")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -37,64 +39,73 @@ func main() {
 		return
 	}
 
-	start := time.Now()
-	for i := 0; i < *count; i++ {
-		t := time.Now().Add(time.Duration(fake.Year(1, 3600)) * time.Second * -1)
-		dt := t.Format(ipasserver.DateDefault)
-		cstid := getRandomOrgCode()
-		srcid := getRandomTag(cstid)
-		lat := getLatitude("kr")
-		lon := getLongitude("kr")
-		spd := strconv.Itoa(fake.Year(-1, 33))
-		snr := strconv.Itoa(fake.Year(0, 12))
-		ctn := fake.Phone()
-		sesid := fmt.Sprintf("%s_%s", srcid, t.Format("20060102150405"))
-
-		// Status
-		values := url.Values{
-			"dt":    {dt},
-			"cstid": {cstid},
-			"srcid": {srcid},
-			"lat":   {lat},
-			"lon":   {lon},
-			"spd":   {spd},
-			"snr":   {snr},
-			"ctn":   {ctn},
-			"sesid": {sesid},
-		}
-		_, err := http.PostForm("http://"+*addr+"/status", values)
-		if err != nil {
-			panic(err)
-		}
-
-		// Event
-		eventType := NumberRange(1, 4)
-		if eventType == 3 {
-			spd = strconv.Itoa(NumberRange(13, 33))
-		}
-		values = url.Values{
-			"dt":    {dt},
-			"cstid": {cstid},
-			"srcid": {srcid},
-			"dstid": {getRandomTag(cstid)},
-			"lat":   {lat},
-			"lon":   {lon},
-			"spd":   {spd},
-			"snr":   {snr},
-			"ctn":   {ctn},
-			"type":  {strconv.Itoa(eventType)},
-			"dist":  {fake.DigitsN(1)},
-			"sesid": {sesid},
-		}
-
-		_, err = http.PostForm("http://"+*addr+"/event", values)
-		if err != nil {
-			panic(err)
-		}
-
+	if *loop {
+		fmt.Printf("loop=true, interval=%3.0fs\n", (*interval).Seconds())
 	}
-	dur := time.Since(start).Seconds()
-	fmt.Printf("Count: %d, Time: %3.2f seconds, EPS: %3.1f\n",*count*2, dur, (float64(*count) * 2 / dur))
+	start := time.Now()
+	for {
+		for i := 0; i < *count; i++ {
+			t := time.Now().Add(time.Duration(fake.Year(1, 3600)) * time.Second * -1)
+			dt := t.Format(ipasserver.DateDefault)
+			cstid := getRandomOrgCode()
+			srcid := getRandomTag(cstid)
+			lat := getLatitude("kr")
+			lon := getLongitude("kr")
+			spd := strconv.Itoa(fake.Year(-1, 33))
+			snr := strconv.Itoa(fake.Year(0, 12))
+			ctn := fake.Phone()
+			sesid := fmt.Sprintf("%s_%s", srcid, t.Format("20060102150405"))
+
+			// Status
+			values := url.Values{
+				"dt":    {dt},
+				"cstid": {cstid},
+				"srcid": {srcid},
+				"lat":   {lat},
+				"lon":   {lon},
+				"spd":   {spd},
+				"snr":   {snr},
+				"ctn":   {ctn},
+				"sesid": {sesid},
+			}
+			_, err := http.PostForm("http://"+*addr+"/status", values)
+			if err != nil {
+				panic(err)
+			}
+
+			// Event
+			eventType := NumberRange(1, 4)
+			if eventType == 3 {
+				spd = strconv.Itoa(NumberRange(13, 33))
+			}
+			values = url.Values{
+				"dt":    {dt},
+				"cstid": {cstid},
+				"srcid": {srcid},
+				"dstid": {getRandomTag(cstid)},
+				"lat":   {lat},
+				"lon":   {lon},
+				"spd":   {spd},
+				"snr":   {snr},
+				"ctn":   {ctn},
+				"type":  {strconv.Itoa(eventType)},
+				"dist":  {fake.DigitsN(1)},
+				"sesid": {sesid},
+			}
+
+			_, err = http.PostForm("http://"+*addr+"/event", values)
+			if err != nil {
+				panic(err)
+			}
+		}
+		dur := time.Since(start).Seconds()
+		fmt.Printf("count=%d, time=%3.2fs, EPS=%3.1f\n", *count*2, dur, (float64(*count) * 2 / dur))
+		if !*loop {
+			break
+		}
+
+		time.Sleep(*interval)
+	}
 }
 
 func getRandomOrgCode() string {
@@ -148,6 +159,7 @@ func getLongitude(loc string) string {
 
 	return fmt.Sprintf("%d.%d", i, d)
 }
+
 //
 //func float32ToString(f32 float32) string {
 //	return strconv.FormatFloat(float64(f32), 'f', 6, 64)
