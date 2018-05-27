@@ -132,9 +132,6 @@ func (c *eventStatsCalculator) produceStats() error {
 			c.addToStats(&e, "evt"+evt+"_by_group", fmt.Sprintf("%d/%d", e.OrgId, e.GroupId))
 
 			if e.EventType == objs.ShockEvent {
-				if e.OrgId == 1 && e.GroupId == 7 {
-					log.Debugf("%s - %s", e.EquipId, e.Targets)
-				}
 				c.addToShockLinksStats(&e)
 			}
 		}
