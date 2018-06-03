@@ -44,12 +44,14 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 		targetDate: targetDate,
 		tmpDir:     filepath.Join(engine.ProcessDir, "tmp"),
 		eventTableKeys: []string{
-			"equip_trend",   // 장비 통계
-			"timeline",      // 타임라인
-			"timeline2",     // 타임라인
-			"shocklinks",     // 타임라인
-			"evt",           // 이벤트 유형별 통계
-			"evt1_by_equip", // 이벤트 유형별(1~4) 장비 통계(상세)
+			"equip_trend",     // 장비 통계
+			"timeline",        // 타임라인
+			"timeline2",       // 타임라인
+			"shocklinks",      // 타임라인
+			"activated_group", // 그룹별 사용도
+			"activated_equip", // 사용도
+			"evt",             // 이벤트 유형별 통계
+			"evt1_by_equip",   // 이벤트 유형별(1~4) 장비 통계(상세)
 			"evt2_by_equip",
 			"evt3_by_equip",
 			"evt4_by_equip",
