@@ -500,9 +500,9 @@ func (c *statusStatsCalculator) Start(wg *sync.WaitGroup) error {
 		}
 	}
 
-	// 일별 시동회수 기록
+	// 그룹별 일별 시동회수 기록
 	query := `
-		insert into stats_activated
+		insert into stats_activated_group
 		select date, org_id, group_id, count(*)
 		from (
 			select ? date, org_id, group_id, session_id
@@ -513,6 +513,27 @@ func (c *statusStatsCalculator) Start(wg *sync.WaitGroup) error {
 		group by org_id, group_id
 	`
 	_, err := c.calculator.engine.DB.Exec(query, c.mark, c.from, c.to)
+	if err == nil {
+		//num, _ := rs.RowsAffected()
+		//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsStatus, "activated", num)
+	} else {
+		log.Error(err)
+		return err
+	}
+
+	// 장비별 일별 시동회수 기록
+	query = `
+		insert into stats_activated_equip
+		select date, org_id, equip_id, count(*)
+		from (
+			select ? date, org_id, equip_id, session_id
+			from log_ipas_status
+			where date >= ? and date <= ?
+			group by org_id, equip_id, session_id
+		) t
+		group by org_id, equip_id
+	`
+	_, err = c.calculator.engine.DB.Exec(query, c.mark, c.from, c.to)
 	if err == nil {
 		//num, _ := rs.RowsAffected()
 		//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsStatus, "activated", num)
