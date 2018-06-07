@@ -42,7 +42,7 @@ func main() {
 	if *loop {
 		fmt.Printf("loop=true, interval=%3.0fs\n", (*interval).Seconds())
 	}
-	start := time.Now()
+	//start := time.Now()
 	for {
 		for i := 0; i < *count; i++ {
 			t := time.Now().Add(time.Duration(fake.Year(1, 3600)) * time.Second * -1)
@@ -98,8 +98,8 @@ func main() {
 				panic(err)
 			}
 		}
-		dur := time.Since(start).Seconds()
-		fmt.Printf("count=%d, time=%3.2fs, EPS=%3.1f\n", *count*2, dur, (float64(*count) * 2 / dur))
+		//dur := time.Since(start).Seconds()
+		//fmt.Printf("count=%d, time=%3.2fs, EPS=%3.1f\n", *count*2, dur, (float64(*count) * 2 / dur))
 		if !*loop {
 			break
 		}
