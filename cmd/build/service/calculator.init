@@ -1,0 +1,51 @@
+#!/bin/sh
+
+# chkconfig: 2345 90 90
+# description: init file for IPAS Calculator
+
+APP_NAME=calculator
+APP_PATH=/root/go/src/github.com/devplayg/ipas-server/cmd/build
+APP_PID=${APP_PATH}/${APP_NAME}.pid
+
+case "$1" in
+start)
+    if [[ -e ${APP_PID} ]]; then
+        PID=`cat ${APP_PID} 2>&-`
+        if [[ -e /proc/${PID} ]]; then
+            echo $APP_NAME is already running
+            exit
+        fi
+    fi
+    ${APP_PATH}/${APP_NAME} &
+    sleep 1
+    echo $! > ${APP_PID}
+
+    ;;
+stop)
+    if [ -e ${APP_PID} ]; then
+        kill `cat ${APP_PID}`
+        rm ${APP_PID}
+    fi
+    ;;
+restart)
+   echo $0
+   $0 stop
+   $0 start
+   ;;
+status)
+   if [[ -e ${APP_PID} ]]; then
+        PID=`cat ${APP_PID}`
+        if [[ -e /proc/${PID} ]]; then
+            echo ${APP_NAME} is running, pid=`cat ${APP_PID}`
+        else
+            echo ${APP_NAME} is NOT running
+        fi
+   else
+        echo ${APP_NAME} is NOT running
+        exit 1
+   fi
+   ;;*)
+   echo "Usage: $0 {start|stop|status|restart}"
+esac
+
+exit 0
