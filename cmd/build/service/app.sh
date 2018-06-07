@@ -1,5 +1,6 @@
 #!/bin/sh
 
+mode=$1
 dir=/root/go/src/github.com/devplayg/ipas-server/cmd/build
 
 addToService()
@@ -12,8 +13,6 @@ addToService()
     chkconfig $command on
 }
 
-mode=$1
-
 
 case "$mode" in
     'install')
@@ -24,18 +23,17 @@ case "$mode" in
         ;;
 
     'start')
-    service receiver start
-    service classifier start 
-    service calculator start 
-    service generator start 
+        service receiver start
+        service classifier start
+        service calculator start
+        service generator start
         ;;
 
     'stop')
-
-    service receiver stop
-    service classifier stop
-    service calculator stop
-    service generator stop
+        service receiver stop
+        service classifier stop
+        service calculator stop
+        service generator stop
         ;;
 esac
 
