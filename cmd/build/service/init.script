@@ -6,6 +6,7 @@
 APP_NAME=###COMMAND###
 APP_PATH=###DIR###
 APP_PID=${APP_PATH}/${APP_NAME}.pid
+OPT="###OPT###"
 
 case "$1" in
 start)
@@ -16,7 +17,7 @@ start)
             exit
         fi
     fi
-    ${APP_PATH}/${APP_NAME} &
+    ${APP_PATH}/${APP_NAME} $OPT&
     sleep 1
     echo $! > ${APP_PID}
 
