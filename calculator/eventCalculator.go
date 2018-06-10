@@ -30,7 +30,6 @@ func NewStats(calculator *Calculator, stats int, from, to, mark string) Stats {
 }
 
 // ---------------------------------------------------------------------------------------------
-
 type eventStatsCalculator struct {
 	calculator      *Calculator
 	wg              *sync.WaitGroup
