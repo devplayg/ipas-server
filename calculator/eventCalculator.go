@@ -37,8 +37,7 @@ type eventStatsCalculator struct {
 	dataMap         objs.DataMap
 	dataRank        objs.DataRank
 	equipStats      map[int]map[string]map[int]int
-	timelineStats   map[int]map[string]map[int]int
-	timeline2Stats  map[int]map[int]map[string]map[int]int // 개발 중(org_id, group_id, hour, evt1~4)
+	timelineStats   map[int]map[int]map[string]map[int]int // 개발 중(org_id, group_id, hour, evt1~4)
 	shockLinksStats map[int]map[int][]string
 	tables          map[string]bool
 	from            string
@@ -92,8 +91,7 @@ func (c *eventStatsCalculator) produceStats() error {
 	c.dataMap[RootId] = make(map[string]map[interface{}]int64)
 	c.dataRank[RootId] = make(map[string]objs.ItemList)
 	c.equipStats = make(map[int]map[string]map[int]int)
-	c.timelineStats = make(map[int]map[string]map[int]int)
-	c.timeline2Stats = make(map[int]map[int]map[string]map[int]int)
+	c.timelineStats = make(map[int]map[int]map[string]map[int]int)
 	c.shockLinksStats = make(map[int]map[int][]string)
 
 	// 데이터 조회
@@ -138,7 +136,6 @@ func (c *eventStatsCalculator) produceStats() error {
 
 		// 타임라인 통계
 		c.addToTimelineStats(&e)
-		c.addToTimeline2Stats(&e)
 
 		// 장비(Tag) 이벤트 통계
 		if _, ok := c.equipStats[e.OrgId]; !ok {
@@ -176,73 +173,25 @@ func (c *eventStatsCalculator) produceStats() error {
 
 	return nil
 }
+
 func (c *eventStatsCalculator) addToTimelineStats(e *objs.IpasEvent) error {
 
-	// 전체 통계
-	if _, ok := c.timelineStats[RootId]; !ok {
-		c.timelineStats[RootId] = make(map[string]map[int]int)
-	}
-	if _, ok := c.timelineStats[RootId][e.Timeline]; !ok {
-		c.timelineStats[RootId][e.Timeline] = map[int]int{
-			objs.StartEvent:     0,
-			objs.ShockEvent:     0,
-			objs.SpeedingEvent:  0,
-			objs.ProximityEvent: 0,
-		}
-	}
-	c.timelineStats[RootId][e.Timeline][e.EventType] += 1
-
-	// 기관 통계
-	if _, ok := c.timelineStats[e.OrgId]; !ok {
-		c.timelineStats[e.OrgId] = make(map[string]map[int]int)
-	}
-	if _, ok := c.timelineStats[e.OrgId][e.Timeline]; !ok {
-		c.timelineStats[e.OrgId][e.Timeline] = map[int]int{
-			objs.StartEvent:     0,
-			objs.ShockEvent:     0,
-			objs.SpeedingEvent:  0,
-			objs.ProximityEvent: 0,
-		}
-	}
-	c.timelineStats[e.OrgId][e.Timeline][e.EventType]++
-
-	if e.GroupId > 0 {
-		// 그룹 통계
-		if _, ok := c.timelineStats[e.GroupId]; !ok {
-			c.timelineStats[e.GroupId] = make(map[string]map[int]int)
-		}
-		if _, ok := c.timelineStats[e.GroupId][e.Timeline]; !ok {
-			c.timelineStats[e.GroupId][e.Timeline] = map[int]int{
-				objs.StartEvent:     0,
-				objs.ShockEvent:     0,
-				objs.SpeedingEvent:  0,
-				objs.ProximityEvent: 0,
-			}
-		}
-		c.timelineStats[e.GroupId][e.Timeline][e.EventType]++
-	}
-
-	return nil
-}
-
-func (c *eventStatsCalculator) addToTimeline2Stats(e *objs.IpasEvent) error {
-
 	// map[int]map[int]map[string]map[int]int // 개발 중
-	if _, ok := c.timeline2Stats[e.OrgId]; !ok {
-		c.timeline2Stats[e.OrgId] = make(map[int]map[string]map[int]int)
+	if _, ok := c.timelineStats[e.OrgId]; !ok {
+		c.timelineStats[e.OrgId] = make(map[int]map[string]map[int]int)
 	}
-	if _, ok := c.timeline2Stats[e.OrgId][e.GroupId]; !ok {
-		c.timeline2Stats[e.OrgId][e.GroupId] = make(map[string]map[int]int)
+	if _, ok := c.timelineStats[e.OrgId][e.GroupId]; !ok {
+		c.timelineStats[e.OrgId][e.GroupId] = make(map[string]map[int]int)
 	}
-	if _, ok := c.timeline2Stats[e.OrgId][e.GroupId][e.Timeline]; !ok {
-		c.timeline2Stats[e.OrgId][e.GroupId][e.Timeline] = map[int]int{
+	if _, ok := c.timelineStats[e.OrgId][e.GroupId][e.Timeline]; !ok {
+		c.timelineStats[e.OrgId][e.GroupId][e.Timeline] = map[int]int{
 			objs.StartEvent:     0,
 			objs.ShockEvent:     0,
 			objs.SpeedingEvent:  0,
 			objs.ProximityEvent: 0,
 		}
 	}
-	c.timeline2Stats[e.OrgId][e.GroupId][e.Timeline][e.EventType] += 1
+	c.timelineStats[e.OrgId][e.GroupId][e.Timeline][e.EventType] += 1
 
 	return nil
 }
@@ -317,9 +266,10 @@ func (c *eventStatsCalculator) addToStats(e *objs.IpasEvent, category string, va
 func (c *eventStatsCalculator) insert() error {
 	fm := make(map[string]*os.File)
 	defer func() {
-		for _, file := range fm {
-			file.Close()
-			//os.Remove(file.Name())
+		if !c.calculator.engine.IsDebug() {
+			for _, file := range fm {
+				os.Remove(file.Name())
+			}
 		}
 	}()
 
@@ -339,6 +289,9 @@ func (c *eventStatsCalculator) insert() error {
 				fm[category].WriteString(str)
 			}
 		}
+	}
+	for _, file := range fm {
+		file.Close()
 	}
 
 	// 통계 Bulk insert
@@ -360,7 +313,9 @@ func (c *eventStatsCalculator) insert() error {
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tempFile.Name())
+	if !c.calculator.engine.IsDebug() {
+		defer os.Remove(tempFile.Name())
+	}
 	for orgId, m := range c.equipStats {
 		for tag, m2 := range m {
 			line := fmt.Sprintf("%s\t%d\t%s\t%d,%d,%d,%d\n", c.mark, orgId, tag, m2[objs.StartEvent], m2[objs.ShockEvent], m2[objs.SpeedingEvent], m2[objs.ProximityEvent])
@@ -383,40 +338,19 @@ func (c *eventStatsCalculator) insert() error {
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tempTimelineFile.Name())
-	for assetId, timeline := range c.timelineStats { //  map[int]map[string]map[int]int
-		for time, m := range timeline {
-			line := fmt.Sprintf("%s\t%d\t%s\t%d,%d,%d,%d\n", c.mark, assetId, time, m[objs.StartEvent], m[objs.ShockEvent], m[objs.SpeedingEvent], m[objs.ProximityEvent])
-			tempTimelineFile.WriteString(line)
+	if !c.calculator.engine.IsDebug() {
+		defer os.Remove(tempTimelineFile.Name())
+	}
+	for orgId, m := range c.timelineStats { //  map[int]map[string]map[int]int
+		for groupId, m1 := range m {
+			for time, m2 := range m1 {
+				line := fmt.Sprintf("%s\t%d\t%d\t%s\t%d\t%d\t%d\t%d\n", c.mark, orgId, groupId, time, m2[objs.StartEvent], m2[objs.ShockEvent], m2[objs.SpeedingEvent], m2[objs.ProximityEvent])
+				tempTimelineFile.WriteString(line)
+			}
 		}
 	}
 	tempTimelineFile.Close()
 	query = fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_timeline", tempTimelineFile.Name())
-	_, err = c.calculator.engine.DB.Exec(query)
-	if err == nil {
-		//num, _ := rs.RowsAffected()
-		//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsEvent, "timeline", num)
-	} else {
-		log.Error(err)
-		return err
-	}
-
-	// 타임라인2 통계
-	tempTimeline2File, err := ioutil.TempFile(c.calculator.tmpDir, "stats_timeline2_")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tempTimeline2File.Name())
-	for orgId, m := range c.timeline2Stats { //  map[int]map[string]map[int]int
-		for groupId, m1 := range m {
-			for time, m2 := range m1 {
-				line := fmt.Sprintf("%s\t%d\t%d\t%s\t%d\t%d\t%d\t%d\n", c.mark, orgId, groupId, time, m2[objs.StartEvent], m2[objs.ShockEvent], m2[objs.SpeedingEvent], m2[objs.ProximityEvent])
-				tempTimeline2File.WriteString(line)
-			}
-		}
-	}
-	tempTimeline2File.Close()
-	query = fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_timeline2", tempTimeline2File.Name())
 	_, err = c.calculator.engine.DB.Exec(query)
 	if err == nil {
 		//num, _ := rs.RowsAffected()
@@ -431,7 +365,9 @@ func (c *eventStatsCalculator) insert() error {
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tempShowLinksFile.Name())
+	if !c.calculator.engine.IsDebug() {
+		defer os.Remove(tempShowLinksFile.Name())
+	}
 	for orgId, m := range c.shockLinksStats {
 		for groupId, arr := range m {
 			line := fmt.Sprintf("%s\t%d\t%d\t%s\t%d\t%d\t%d\t%d\n", c.mark, orgId, groupId, strings.Join(arr, ","))
