@@ -39,9 +39,9 @@ func main() {
 		return
 	}
 
-	if *loop {
-		fmt.Printf("loop=true, interval=%3.0fs\n", (*interval).Seconds())
-	}
+	//if *loop {
+	//	fmt.Printf("loop=true, interval=%3.0fs\n", (*interval).Seconds())
+	//}
 	//start := time.Now()
 	for {
 		for i := 0; i < *count; i++ {
