@@ -46,7 +46,6 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 		eventTableKeys: []string{
 			"equip_trend",     // 장비 통계
 			"timeline",        // 타임라인
-			"timeline2",       // 타임라인
 			"shocklinks",      // 타임라인
 			"activated_group", // 그룹별 사용도
 			"activated_equip", // 사용도
