@@ -18,21 +18,26 @@ const (
 	RootId = -1
 
 	// 이벤트 종류
-	StatsEvent  = 1 // IPAS 이벤트 통계
-	StatsStatus = 2 // IPAS 상태 통계
+	EventStats = 1 // IPAS 이벤트 통계
+	ExtraStats = 2 // IPAS 상태 통계
 )
 
+var StatsDesc = map[int]string{
+	EventStats: "event",
+	ExtraStats: "extra",
+}
+
 type Calculator struct {
-	engine          *ipasserver.Engine // 엔진
-	top             int                // Top N 순위
-	interval        time.Duration      // 실행 주기(실시간 모드에서 사용)
-	calType         int                // 산출기 타입(실시간, 특정날짜, 특정기간)
-	targetDate      string             // 대상 날짜
-	memberAssets    map[int][]int      // 사용자 자산
-	eventTableKeys  []string           // 이벤트 통계 테이블
-	statusTableKeys []string           // 상태 통계 테이블
-	tmpDir          string             // 임시 디렉토리
-	eventRank       objs.DataRank
+	engine         *ipasserver.Engine // 엔진
+	top            int                // Top N 순위
+	interval       time.Duration      // 실행 주기(실시간 모드에서 사용)
+	calType        int                // 산출기 타입(실시간, 특정날짜, 특정기간)
+	targetDate     string             // 대상 날짜
+	memberAssets   map[int][]int      // 사용자 자산
+	eventTableKeys []string           // 이벤트 통계 테이블
+	extraTableKeys []string           // 상태 통계 테이블
+	tmpDir         string             // 임시 디렉토리
+	eventRank      objs.DataRank
 }
 
 func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, calType int, targetDate string) *Calculator {
@@ -44,13 +49,11 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 		targetDate: targetDate,
 		tmpDir:     filepath.Join(engine.ProcessDir, "tmp"),
 		eventTableKeys: []string{
-			"equip_trend",     // 장비 통계
-			"timeline",        // 타임라인
-			"shocklinks",      // 타임라인
-			"activated_group", // 그룹별 사용도
-			"activated_equip", // 사용도
-			"evt",             // 이벤트 유형별 통계
-			"evt1_by_equip",   // 이벤트 유형별(1~4) 장비 통계(상세)
+			"equip_trend",   // 장비 통계
+			"timeline",      // 타임라인
+			"shocklinks",    // 타임라인
+			"evt",           // 이벤트 유형별 통계
+			"evt1_by_equip", // 이벤트 유형별(1~4) 장비 통계(상세)
 			"evt2_by_equip",
 			"evt3_by_equip",
 			"evt4_by_equip",
@@ -59,9 +62,10 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 			"evt3_by_group",
 			"evt4_by_group",
 		},
-		statusTableKeys: []string{
-			"equip_count", // 일별 자산 카운팅
-			"activated",   // 기관/그룹별 자산운용 카운팅(장비 활용도 분석용)
+		extraTableKeys: []string{
+			"equip_count",     // 일별 자산 카운팅
+			"activated_group", // 그룹별 사용건수 및 사용시간
+			"activated_equip", // 장비별 사용건수 및 사용시간
 		},
 	}
 }
@@ -74,7 +78,7 @@ func (c *Calculator) removeStats(date string, isToday bool) error {
 	}
 	from := date + " 00:00:00"
 	to := date + " 23:59:59"
-	for _, k := range append(c.eventTableKeys, c.statusTableKeys...) {
+	for _, k := range append(c.eventTableKeys, c.extraTableKeys...) {
 		_, err := c.engine.DB.Exec(fmt.Sprintf(query, k), from, to)
 		if err != nil {
 			log.Error(err)
@@ -96,7 +100,7 @@ func (c *Calculator) createTables() error {
 			KEY       ix_assetid (date, asset_id)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 	`
-	for _, k := range append(c.eventTableKeys, c.statusTableKeys...) {
+	for _, k := range append(c.eventTableKeys, c.extraTableKeys...) {
 		_, err := c.engine.DB.Exec(fmt.Sprintf(query, k))
 		if err != nil {
 			return err
@@ -205,12 +209,12 @@ func (c *Calculator) calculate(from, to, mark string) error {
 	wg := new(sync.WaitGroup)
 
 	// 이벤트 통계
-	s1 := NewStats(c, StatsEvent, from, to, mark)
+	s1 := NewStats(c, EventStats, from, to, mark)
 	wg.Add(1)
 	go s1.Start(wg)
 
 	// 상태 통계
-	s2 := NewStats(c, StatsStatus, from, to, mark)
+	s2 := NewStats(c, ExtraStats, from, to, mark)
 	wg.Add(1)
 	go s2.Start(wg)
 

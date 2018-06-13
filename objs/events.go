@@ -34,5 +34,13 @@ type IpasEvent struct {
 	EventType int
 	EquipId   string
 	Targets   string
-	Timeline string
+	Timeline  string
+}
+
+type IpasStatus struct {
+	Date      time.Time
+	OrgId     int
+	GroupId   int
+	EquipId   string
+	SessionId string
 }

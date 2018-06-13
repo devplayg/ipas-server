@@ -20,7 +20,7 @@
 --
 
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `ipasm` /*!40100 DEFAULT CHARACTER SET utf8 */;
---  mysqldump -u root --skip-add-drop-table -d -B  ipasm > ipasm-tables.sql
+-- mysqldump -u root --skip-add-drop-table -d -B  ipasm > ipasm-tables.sql
 
 USE `ipasm`;
 
@@ -355,18 +355,36 @@ CREATE TABLE `mbr_password` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `stats_activated`
+-- Table structure for table `stats_activated_equip`
 --
 
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_activated` (
+CREATE TABLE `stats_activated_equip` (
+  `date` datetime NOT NULL,
+  `org_id` int(11) NOT NULL,
+  `equip_id` varchar(16) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `uptime` int(10) unsigned NOT NULL,
+  KEY `ix_date` (`date`),
+  KEY `ix_equipid` (`date`,`org_id`,`equip_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stats_activated_group`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_activated_group` (
   `date` datetime NOT NULL,
   `org_id` int(11) NOT NULL,
   `group_id` int(11) NOT NULL,
   `count` int(10) unsigned NOT NULL,
+  `uptime` int(10) unsigned NOT NULL,
   KEY `ix_date` (`date`),
-  KEY `ix_equipid` (`date`,`org_id`,`group_id`)
+  KEY `ix_group` (`date`,`org_id`,`group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -581,11 +599,15 @@ CREATE TABLE `stats_shocklinks` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `stats_timeline` (
   `date` datetime NOT NULL,
-  `asset_id` int(11) NOT NULL,
-  `time` datetime NOT NULL,
-  `summary` varchar(32) NOT NULL,
+  `org_id` int(11) NOT NULL,
+  `group_id` int(11) NOT NULL,
+  `item` datetime NOT NULL,
+  `startup_count` int(10) unsigned NOT NULL,
+  `shock_count` int(10) unsigned NOT NULL,
+  `speeding_count` int(10) unsigned NOT NULL,
+  `proximity_count` int(10) unsigned NOT NULL,
   KEY `ix_date` (`date`),
-  KEY `ix_assetid` (`date`,`asset_id`)
+  KEY `ix_orgid` (`date`,`org_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -597,15 +619,12 @@ CREATE TABLE `stats_timeline` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `stats_timeline2` (
   `date` datetime NOT NULL,
-  `org_id` int(11) NOT NULL,
-  `group_id` int(11) NOT NULL,
-  `item` datetime NOT NULL,
-  `startup_count` int(10) unsigned NOT NULL,
-  `shock_count` int(10) unsigned NOT NULL,
-  `speeding_count` int(10) unsigned NOT NULL,
-  `proximity_count` int(10) unsigned NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `item` varchar(64) NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `rank` int(10) unsigned NOT NULL,
   KEY `ix_date` (`date`),
-  KEY `ix_orgid` (`date`,`org_id`)
+  KEY `ix_assetid` (`date`,`asset_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -636,4 +655,4 @@ CREATE TABLE `sys_config` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-05-27  4:41:28
+-- Dump completed on 2018-06-13 10:35:29
