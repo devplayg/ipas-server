@@ -1,4 +1,4 @@
-use ipasm,
+use ipasm;
 
 INSERT INTO `sys_config` (`section`, `keyword`, `value_s`, `value_n`, `created`, `updated`) VALUES
     ('data', 'retention_days', '', 66, '2017-07-16 17:53:22', '2017-07-16 18:00:32'),

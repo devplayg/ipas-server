@@ -611,22 +611,6 @@ CREATE TABLE `stats_timeline` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `stats_timeline2`
---
-
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stats_timeline2` (
-  `date` datetime NOT NULL,
-  `asset_id` int(11) NOT NULL,
-  `item` varchar(64) NOT NULL,
-  `count` int(10) unsigned NOT NULL,
-  `rank` int(10) unsigned NOT NULL,
-  KEY `ix_date` (`date`),
-  KEY `ix_assetid` (`date`,`asset_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `sys_config`

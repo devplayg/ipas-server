@@ -39,9 +39,6 @@ func main() {
 		return
 	}
 
-	//if *loop {
-	//	fmt.Printf("loop=true, interval=%3.0fs\n", (*interval).Seconds())
-	//}
 	//start := time.Now()
 	for {
 		for i := 0; i < *count; i++ {
@@ -72,9 +69,27 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
+			for j:=0; j<NumberRange(1, 4); j++ {
+				values := url.Values{
+					"dt":    {t.Add(time.Duration(fake.Year(1, 360)) * time.Second).Format(ipasserver.DateDefault)},
+					"cstid": {cstid},
+					"srcid": {srcid},
+					"lat":   {getLatitude("kr")},
+					"lon":   {getLongitude("kr")},
+					"spd":   {spd},
+					"snr":   {snr},
+					"ctn":   {ctn},
+					"sesid": {sesid},
+				}
+
+				_, err := http.PostForm("http://"+*addr+"/status", values)
+				if err != nil {
+					panic(err)
+				}
+			}
 
 			// Event
-			eventType := NumberRange(1, 4)
+			eventType := NumberRange(2, 4)
 			if eventType == 3 {
 				spd = strconv.Itoa(NumberRange(13, 33))
 			}
@@ -92,14 +107,12 @@ func main() {
 				"dist":  {fake.DigitsN(1)},
 				"sesid": {sesid},
 			}
-
+			log.Println("gogo")
 			_, err = http.PostForm("http://"+*addr+"/event", values)
 			if err != nil {
 				panic(err)
 			}
 		}
-		//dur := time.Since(start).Seconds()
-		//fmt.Printf("count=%d, time=%3.2fs, EPS=%3.1f\n", *count*2, dur, (float64(*count) * 2 / dur))
 		if !*loop {
 			break
 		}

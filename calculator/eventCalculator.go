@@ -2,7 +2,6 @@ package calculator
 
 import (
 	"fmt"
-	"github.com/devplayg/ipas-server"
 	"github.com/devplayg/ipas-server/objs"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -211,7 +210,6 @@ func (c *eventStatsCalculator) produceExtraStats() error {
 		e := objs.IpasStatus{}
 
 		// 데이터 읽기
-
 		err := rows.Scan(&e.Date, &e.OrgId, &e.GroupId, &e.EquipId, &e.SessionId)
 		if err != nil {
 			log.Error(err)
@@ -266,7 +264,6 @@ func (c *eventStatsCalculator) produceExtraStats() error {
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -564,24 +561,22 @@ func NewExtraStats(calculator *Calculator, from, to, mark string) *extraStatsCal
 func (c *extraStatsCalculator) Start(wg *sync.WaitGroup) error {
 	defer wg.Done()
 	start := time.Now()
-	t1, _ := time.Parse(ipasserver.DateDefault, c.from)
 
-	if c.calculator.calType == objs.RealtimeCalculator || t1.Format("2006-01-02") == time.Now().Add(-24*time.Hour).Format("2006-01-02") { // 실시간 통계 또는 어제 통계이면
-		// 일별 자산추이 개수 기록
-		query := `
+	// 일별 자산추이 개수 기록
+	query := `
 			insert into stats_equip_count
 			select ?, org_id, group_id, equip_type, count(*) count
 			from ast_ipas
+			where created <= ?
 			group by org_id, group_id, equip_type
 		`
-		_, err := c.calculator.engine.DB.Exec(query, c.mark)
-		if err == nil {
-			//num, _ := rs.RowsAffected()
-			//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsStatus, "equip_count", num)
-		} else {
-			log.Error(err)
-			return err
-		}
+	_, err := c.calculator.engine.DB.Exec(query, c.mark, c.mark)
+	if err == nil {
+		//num, _ := rs.RowsAffected()
+		//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, StatsStatus, "equip_count", num)
+	} else {
+		log.Error(err)
+		return err
 	}
 
 	log.Debugf("cal_type=%d, stats_type=%s, exec_time=%3.1fs", c.calculator.calType, StatsDesc[ExtraStats], time.Since(start).Seconds())

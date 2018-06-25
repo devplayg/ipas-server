@@ -1,5 +1,17 @@
 
 
+
+update log_ipas_event
+set date = date_add(date, interval datediff(now(), date) day)
+where date >= '2017-03-17 00:00:00';
+
+update log_ipas_status
+set date = date_add(date, interval datediff(now(), date) day)
+where date >= '2017-03-17 00:00:00';
+
+
+
+
 create user 'devplayg'@'%' identified by 'devplayg';
 grant all privileges on ipasm.* to 'devplayg'@'%';
 create user 'devplayg'@'localhost' identified by 'devplayg123';
@@ -83,15 +95,6 @@ INSERT INTO `ast_asset` (`asset_id`, `class`, `parent_id`, `name`, `type1`, `typ
 ;
 
 insert into ast_code(asset_id, code) values(1, 'kr1'),(2, 'kr2'),(3, 'us1'),(4, 'us2'),(5, 'jp1'),(6, 'jp2');
-
-
-
-
-
-update log_ipas_event
-set date = date_add(date, interval datediff(now(), date) day)
-where date >= '2017-03-17 00:00:00';
-
 
 
 
