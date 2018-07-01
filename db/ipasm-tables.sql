@@ -365,7 +365,7 @@ CREATE TABLE `stats_activated_equip` (
   `org_id` int(11) NOT NULL,
   `equip_id` varchar(16) NOT NULL,
   `count` int(10) unsigned NOT NULL,
-  `uptime` int(10) unsigned NOT NULL,
+  `optime` int(10) unsigned NOT NULL,
   KEY `ix_date` (`date`),
   KEY `ix_equipid` (`date`,`org_id`,`equip_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -382,7 +382,7 @@ CREATE TABLE `stats_activated_group` (
   `org_id` int(11) NOT NULL,
   `group_id` int(11) NOT NULL,
   `count` int(10) unsigned NOT NULL,
-  `uptime` int(10) unsigned NOT NULL,
+  `optime` int(10) unsigned NOT NULL,
   KEY `ix_date` (`date`),
   KEY `ix_group` (`date`,`org_id`,`group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

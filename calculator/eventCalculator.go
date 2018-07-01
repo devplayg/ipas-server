@@ -40,8 +40,8 @@ type eventStatsCalculator struct {
 	tables              map[string]bool
 	sessionByGroupStats map[int]map[int]map[string]int
 	sessionByEquipStats map[int]map[string]map[string]int
-	uptimeByGroupStats  map[int]map[int]map[string][]time.Time
-	uptimeByEquipStats  map[int]map[string]map[string][]time.Time
+	optimeByGroupStats  map[int]map[int]map[string][]time.Time
+	optimeByEquipStats  map[int]map[string]map[string][]time.Time
 	from                string
 	to                  string
 	mark                string
@@ -187,8 +187,8 @@ func (c *eventStatsCalculator) produceExtraStats() error {
 	// 통계 구조체 초기화
 	c.sessionByGroupStats = make(map[int]map[int]map[string]int)
 	c.sessionByEquipStats = make(map[int]map[string]map[string]int)
-	c.uptimeByGroupStats = make(map[int]map[int]map[string][]time.Time)
-	c.uptimeByEquipStats = make(map[int]map[string]map[string][]time.Time)
+	c.optimeByGroupStats = make(map[int]map[int]map[string][]time.Time)
+	c.optimeByEquipStats = make(map[int]map[string]map[string][]time.Time)
 
 	// 상태정보 조회
 	query := `
@@ -219,47 +219,47 @@ func (c *eventStatsCalculator) produceExtraStats() error {
 		// 그룹별 세션 수
 		if _, ok := c.sessionByGroupStats[e.OrgId]; !ok {
 			c.sessionByGroupStats[e.OrgId] = make(map[int]map[string]int)
-			c.uptimeByGroupStats[e.OrgId] = make(map[int]map[string][]time.Time)
+			c.optimeByGroupStats[e.OrgId] = make(map[int]map[string][]time.Time)
 		}
 		if _, ok := c.sessionByGroupStats[e.OrgId][e.GroupId]; !ok {
 			c.sessionByGroupStats[e.OrgId][e.GroupId] = make(map[string]int)
-			c.uptimeByGroupStats[e.OrgId][e.GroupId] = make(map[string][]time.Time)
+			c.optimeByGroupStats[e.OrgId][e.GroupId] = make(map[string][]time.Time)
 		}
 		c.sessionByGroupStats[e.OrgId][e.GroupId][e.SessionId]++
 
 		// 장비별 세션 수
 		if _, ok := c.sessionByEquipStats[e.OrgId]; !ok {
 			c.sessionByEquipStats[e.OrgId] = make(map[string]map[string]int)
-			c.uptimeByEquipStats[e.OrgId] = make(map[string]map[string][]time.Time)
+			c.optimeByEquipStats[e.OrgId] = make(map[string]map[string][]time.Time)
 		}
 		if _, ok := c.sessionByEquipStats[e.OrgId][e.EquipId]; !ok {
 			c.sessionByEquipStats[e.OrgId][e.EquipId] = make(map[string]int)
-			c.uptimeByEquipStats[e.OrgId][e.EquipId] = make(map[string][]time.Time)
+			c.optimeByEquipStats[e.OrgId][e.EquipId] = make(map[string][]time.Time)
 		}
 		c.sessionByEquipStats[e.OrgId][e.EquipId][e.SessionId]++
 
 		// 시간 측정 - 그룹별
-		if _, ok := c.uptimeByGroupStats[e.OrgId][e.GroupId][e.SessionId]; !ok {
-			c.uptimeByGroupStats[e.OrgId][e.GroupId][e.SessionId] = []time.Time{e.Date, e.Date}
+		if _, ok := c.optimeByGroupStats[e.OrgId][e.GroupId][e.SessionId]; !ok {
+			c.optimeByGroupStats[e.OrgId][e.GroupId][e.SessionId] = []time.Time{e.Date, e.Date}
 		} else {
-			if e.Date.Before(c.uptimeByGroupStats[e.OrgId][e.GroupId][e.SessionId][0]) {
-				arr := c.uptimeByGroupStats[e.OrgId][e.GroupId][e.SessionId]
+			if e.Date.Before(c.optimeByGroupStats[e.OrgId][e.GroupId][e.SessionId][0]) {
+				arr := c.optimeByGroupStats[e.OrgId][e.GroupId][e.SessionId]
 				arr[0] = e.Date
-			} else if e.Date.After(c.uptimeByGroupStats[e.OrgId][e.GroupId][e.SessionId][1]) {
-				arr := c.uptimeByGroupStats[e.OrgId][e.GroupId][e.SessionId]
+			} else if e.Date.After(c.optimeByGroupStats[e.OrgId][e.GroupId][e.SessionId][1]) {
+				arr := c.optimeByGroupStats[e.OrgId][e.GroupId][e.SessionId]
 				arr[1] = e.Date
 			}
 		}
 
 		// 시간 측정 - 장비별
-		if _, ok := c.uptimeByEquipStats[e.OrgId][e.EquipId][e.SessionId]; !ok {
-			c.uptimeByEquipStats[e.OrgId][e.EquipId][e.SessionId] = []time.Time{e.Date, e.Date}
+		if _, ok := c.optimeByEquipStats[e.OrgId][e.EquipId][e.SessionId]; !ok {
+			c.optimeByEquipStats[e.OrgId][e.EquipId][e.SessionId] = []time.Time{e.Date, e.Date}
 		} else {
-			if e.Date.Before(c.uptimeByEquipStats[e.OrgId][e.EquipId][e.SessionId][0]) {
-				arr := c.uptimeByEquipStats[e.OrgId][e.EquipId][e.SessionId]
+			if e.Date.Before(c.optimeByEquipStats[e.OrgId][e.EquipId][e.SessionId][0]) {
+				arr := c.optimeByEquipStats[e.OrgId][e.EquipId][e.SessionId]
 				arr[0] = e.Date
-			} else if e.Date.After(c.uptimeByEquipStats[e.OrgId][e.EquipId][e.SessionId][1]) {
-				arr := c.uptimeByEquipStats[e.OrgId][e.EquipId][e.SessionId]
+			} else if e.Date.After(c.optimeByEquipStats[e.OrgId][e.EquipId][e.SessionId][1]) {
+				arr := c.optimeByEquipStats[e.OrgId][e.EquipId][e.SessionId]
 				arr[1] = e.Date
 			}
 		}
@@ -488,8 +488,8 @@ func (c *eventStatsCalculator) insert() error {
 	}
 	for orgId, m := range c.sessionByGroupStats {
 		for groupId, arr := range m {
-			uptime := getUptimeSum(c.uptimeByGroupStats[orgId][groupId])
-			line := fmt.Sprintf("%s\t%d\t%d\t%d\t%3.0f\n", c.mark, orgId, groupId, len(arr), uptime)
+			optime := getOperatingTime(c.optimeByGroupStats[orgId][groupId])
+			line := fmt.Sprintf("%s\t%d\t%d\t%d\t%3.0f\n", c.mark, orgId, groupId, len(arr), optime)
 			tempSessionByGroupFile.WriteString(line)
 		}
 	}
@@ -514,8 +514,8 @@ func (c *eventStatsCalculator) insert() error {
 	}
 	for orgId, m := range c.sessionByEquipStats {
 		for equipId, arr := range m {
-			uptime := getUptimeSum(c.uptimeByEquipStats[orgId][equipId])
-			line := fmt.Sprintf("%s\t%d\t%s\t%d\t%3.0f\n", c.mark, orgId, equipId, len(arr), uptime)
+			optime := getOperatingTime(c.optimeByEquipStats[orgId][equipId])
+			line := fmt.Sprintf("%s\t%d\t%s\t%d\t%3.0f\n", c.mark, orgId, equipId, len(arr), optime)
 			tempSessionByEquipFile.WriteString(line)
 		}
 	}
@@ -583,7 +583,7 @@ func (c *extraStatsCalculator) Start(wg *sync.WaitGroup) error {
 	return nil
 }
 
-func getUptimeSum(m map[string][]time.Time) float64 {
+func getOperatingTime(m map[string][]time.Time) float64 {
 	var sum float64
 	for _, t := range m {
 		sum += t[1].Sub(t[0]).Seconds()
