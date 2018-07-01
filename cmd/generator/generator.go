@@ -107,7 +107,6 @@ func main() {
 				"dist":  {fake.DigitsN(1)},
 				"sesid": {sesid},
 			}
-			log.Println("gogo")
 			_, err = http.PostForm("http://"+*addr+"/event", values)
 			if err != nil {
 				panic(err)
