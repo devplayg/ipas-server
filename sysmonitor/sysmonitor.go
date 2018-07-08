@@ -57,7 +57,7 @@ func updateResource(e *ipasserver.Engine, partition string) error {
      on duplicate key update
          cpu_usage = values(cpu_usage),
          mem_total = values(mem_total),
-         mem_used = values(mem_total),
+         mem_used = values(mem_used),
          disk_total = values(disk_total),
          disk_used = values(disk_used),
          cpu_comment = values(cpu_comment),
