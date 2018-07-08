@@ -3,30 +3,30 @@ package main
 import (
 	"github.com/devplayg/golibs/secureconfig"
 	"github.com/devplayg/ipas-server"
-	"github.com/devplayg/ipas-server/classifier"
+	"github.com/devplayg/ipas-server/sysmonitor"
+	"github.com/jasonlvhit/gocron"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"runtime"
-	"time"
 )
 
 const (
-	AppName    = "IPAS Classifier"
-	AppVersion = "2.0.1805.30201"
+	AppName    = "System resource monitor"
+	AppVersion = "2.0.1804.32201"
 )
 
 func main() {
-	// CPU 설정
-	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	runtime.GOMAXPROCS(1)
 
 	// 옵션 설정
 	var (
-		version   = ipasserver.CmdFlags.Bool("version", false, "Version")
-		debug     = ipasserver.CmdFlags.Bool("debug", false, "Debug")
+		version = ipasserver.CmdFlags.Bool("version", false, "Version")
+		//interval = ipasserver.CmdFlags.Duration("interval", 10*time.Second, "Interval(sec)")
+		debug     = ipasserver.CmdFlags.Bool("debug", true, "Debug")
 		verbose   = ipasserver.CmdFlags.Bool("v", false, "Verbose")
-		batchSize = ipasserver.CmdFlags.Uint("size", 3, "Batch size")
-		interval = ipasserver.CmdFlags.Uint("interval", 2000, "Interval(ms)")
 		setConfig = ipasserver.CmdFlags.Bool("config", false, "Edit configurations")
+		disk      = ipasserver.CmdFlags.String("disk", "/home", "Disk to monitor")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -55,20 +55,15 @@ func main() {
 	log.Debug(engine.Config)
 
 	// 데이터베이스 연결
-	if err := engine.InitDatabase(2, 2,); err != nil {
+	if err := engine.InitDatabase(1, 1); err != nil {
 		log.Fatal(err)
 	}
 	defer engine.DB.Close()
 
-	// 데이터 분류 시작
-	clf := classifier.NewClassifier(engine, *batchSize)
+	sysmonitor.UpdateResource(engine, *disk)
+	gocron.Every(1).Minute().Do(sysmonitor.UpdateResource, engine, *disk)
 	go func() {
-		dur := time.Duration(*interval) * time.Millisecond
-		for {
-			clf.Run()
-			time.Sleep(dur)
-		}
-
+		<-gocron.Start()
 	}()
 
 	// 종료 시그널 대기

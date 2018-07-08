@@ -7,3 +7,9 @@ INSERT INTO `sys_config` (`section`, `keyword`, `value_s`, `value_n`, `created`,
     ('system', 'data_retention_days', '', 180, '2017-02-24 16:14:58', '2018-05-03 22:16:47'),
     ('system', 'use_namecard', 'on', 0, '2017-07-12 21:49:49', '2018-05-03 22:16:47')
 ;
+
+
+
+
+insert into ast_server(category1, category2, data_type, hostname, port, name)
+values(1, 1, 1, '127.0.0.1', 0, 'localhost');

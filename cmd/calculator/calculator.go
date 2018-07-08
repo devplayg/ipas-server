@@ -59,7 +59,7 @@ func main() {
 	log.Debug(engine.Config)
 
 	// 데이터베이스 연결
-	if err := engine.InitDatabase(); err != nil {
+	if err := engine.InitDatabase(2, 2); err != nil {
 		log.Fatal(err)
 	}
 	defer engine.DB.Close()

@@ -62,6 +62,12 @@ func (e *Engine) IsDebug() bool {
 	return e.debug
 }
 
+func (e *Engine) CheckError(err error) {
+	if err != nil {
+		log.Error(err)
+	}
+}
+
 func (e *Engine) checkSubDir(subDir string) error {
 	dir := filepath.Join(e.ProcessDir, subDir)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -149,7 +155,7 @@ func (e *Engine) initLogger(verbose bool) error {
 	return nil
 }
 
-func (e *Engine) InitDatabase() error {
+func (e *Engine) InitDatabase(idleConns, openConns int) error {
 	connStr := fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/%s?allowAllFiles=true&charset=utf8&parseTime=true&loc=%s",
 		e.Config["db.username"],
@@ -166,8 +172,8 @@ func (e *Engine) InitDatabase() error {
 		log.Fatal(err)
 	}
 
-	db.SetMaxIdleConns(10)
-	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(idleConns)
+	db.SetMaxOpenConns(openConns)
 	e.DB = db
 	return nil
 }

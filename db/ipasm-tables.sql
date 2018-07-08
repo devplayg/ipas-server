@@ -123,6 +123,7 @@ CREATE TABLE `ast_ipas` (
   KEY `ix_ast_ipas_equiptype` (`equip_type`),
   KEY `ix_ast_ipas_orgid` (`org_id`),
   KEY `ix_ast_ipas_groupid` (`group_id`),
+  KEY `ix_created` (`created`),
   CONSTRAINT `fk_ast_ipas_orgid` FOREIGN KEY (`org_id`) REFERENCES `ast_asset` (`asset_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -145,6 +146,42 @@ CREATE TABLE `ast_ipas_temp` (
   `snr` int(11) NOT NULL DEFAULT 0,
   `usim` varchar(32) NOT NULL DEFAULT '',
   `ip` int(10) unsigned NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ast_server`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `ast_server` (
+  `server_id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(128) NOT NULL,
+  `category1` smallint(5) unsigned NOT NULL,
+  `category2` smallint(5) unsigned NOT NULL,
+  `hostname` varchar(64) NOT NULL,
+  `port` smallint(5) unsigned NOT NULL DEFAULT 0,
+  `data_type` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `username` varchar(32) NOT NULL DEFAULT '',
+  `password` varchar(128) NOT NULL DEFAULT '',
+  `cpu_usage` float(4,1) NOT NULL DEFAULT 0.0,
+  `mem_total` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `mem_used` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `disk_total` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `disk_used` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `cpu_comment` text DEFAULT '',
+  `mem_comment` text DEFAULT '',
+  `disk_comment` text DEFAULT '',
+  `n1` int(10) unsigned NOT NULL DEFAULT 0,
+  `n2` int(10) unsigned NOT NULL DEFAULT 0,
+  `s1` varchar(128) NOT NULL DEFAULT '',
+  `s2` varchar(128) NOT NULL DEFAULT '',
+  `enabled` tinyint(3) unsigned NOT NULL DEFAULT 1,
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`server_id`),
+  UNIQUE KEY `category1` (`category1`,`category2`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -611,7 +648,6 @@ CREATE TABLE `stats_timeline` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
-
 --
 -- Table structure for table `sys_config`
 --
@@ -639,4 +675,4 @@ CREATE TABLE `sys_config` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-06-13 10:35:29
+-- Dump completed on 2018-07-08 10:23:05
