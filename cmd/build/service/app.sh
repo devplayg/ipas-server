@@ -19,6 +19,7 @@ case "$mode" in
         addToService receiver ${dir}
         addToService classifier ${dir}
         addToService calculator ${dir}
+        addToService scheduler ${dir}
         addToService "generator" ${dir} "-loop -interval 60s"
         ;;
 
@@ -26,6 +27,7 @@ case "$mode" in
         service receiver start
         service classifier start
         service calculator start
+        service scheduler start
         service generator start
         ;;
 
@@ -33,6 +35,7 @@ case "$mode" in
         service receiver stop
         service classifier stop
         service calculator stop
+        service scheduler stop
         service generator stop
         ;;
 esac
