@@ -89,7 +89,7 @@ func main() {
 			}
 
 			// Event
-			eventType := NumberRange(2, 4)
+			eventType := NumberRange(1, 4)
 			if eventType == 3 {
 				spd = strconv.Itoa(NumberRange(13, 33))
 			}
