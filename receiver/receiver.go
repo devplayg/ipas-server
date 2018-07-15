@@ -69,9 +69,9 @@ func (e *EventReceiver) Start(c chan<- *objs.Event) error {
 		m["snr"] = req.Form.Get("snr")
 		m["ctn"] = req.Form.Get("ctn")
 		m["type"] = req.Form.Get("type")
-		if m["type"] == "1" {
-			return
-		}
+		//if m["type"] == "1" {
+		//	return
+		//}
 		m["dist"] = req.Form.Get("dist")
 		m["sesid"] = req.Form.Get("sesid")
 		event.Parsed = m

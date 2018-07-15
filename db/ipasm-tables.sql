@@ -21,7 +21,6 @@
 
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `ipasm` /*!40100 DEFAULT CHARACTER SET utf8 */;
 -- mysqldump -u root --skip-add-drop-table -d -B  ipasm > ipasm-tables.sql
-
 USE `ipasm`;
 
 --
@@ -32,14 +31,14 @@ USE `ipasm`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `adt_audit` (
   `audit_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `date` datetime NOT NULL DEFAULT current_timestamp(),
   `member_id` int(11) NOT NULL,
   `category` varchar(32) NOT NULL,
   `ip` int(10) unsigned NOT NULL,
   `message` varchar(256) NOT NULL,
-  `created` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`audit_id`),
   KEY `ix_member_id` (`member_id`),
-  KEY `ix_created` (`created`)
+  KEY `ix_created` (`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -267,6 +266,30 @@ CREATE TABLE `log_ipas_status` (
   KEY `ix_log_ipas_status_date_orgid` (`date`,`org_id`),
   KEY `ix_log_ipas_status_date_orgid_groupid` (`date`,`org_id`,`group_id`),
   KEY `ix_log_ipas_status_date_equipid` (`date`,`equip_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `log_message`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `log_message` (
+  `message_id` int(11) NOT NULL AUTO_INCREMENT,
+  `date` datetime NOT NULL,
+  `status` tinyint(1) NOT NULL DEFAULT 0,
+  `receiver_id` int(11) NOT NULL,
+  `sender_id` smallint(5) unsigned NOT NULL,
+  `priority` int(11) NOT NULL,
+  `category` varchar(32) NOT NULL,
+  `message` varchar(256) NOT NULL,
+  `url` varchar(512) NOT NULL,
+  PRIMARY KEY (`message_id`),
+  KEY `ix_receiverId` (`date`,`receiver_id`),
+  KEY `ix_is_read` (`date`,`receiver_id`,`status`),
+  KEY `fk_log_message_memberId` (`receiver_id`),
+  CONSTRAINT `fk_log_message_memberId` FOREIGN KEY (`receiver_id`) REFERENCES `mbr_member` (`member_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -675,4 +698,4 @@ CREATE TABLE `sys_config` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-07-08 10:23:05
+-- Dump completed on 2018-07-15 18:42:03
