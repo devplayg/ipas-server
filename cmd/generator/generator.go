@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/devplayg/ipas-server"
 	"github.com/icrowley/fake"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"os"
@@ -39,6 +39,9 @@ func main() {
 		return
 	}
 
+	statusUrl := "http://" + *addr + "/status"
+	eventUrl := "http://" + *addr + "/event"
+
 	//start := time.Now()
 	for {
 		for i := 0; i < *count; i++ {
@@ -54,7 +57,7 @@ func main() {
 			sesid := fmt.Sprintf("%s_%s", srcid, t.Format("20060102150405"))
 
 			// Status
-			values := url.Values{
+			postData := url.Values{
 				"dt":    {dt},
 				"cstid": {cstid},
 				"srcid": {srcid},
@@ -65,12 +68,12 @@ func main() {
 				"ctn":   {ctn},
 				"sesid": {sesid},
 			}
-			_, err := http.PostForm("http://"+*addr+"/status", values)
+			_, err := http.PostForm(statusUrl, postData)
 			if err != nil {
 				panic(err)
 			}
-			for j:=0; j<NumberRange(1, 4); j++ {
-				values := url.Values{
+			for j := 0; j < NumberRange(1, 4); j++ {
+				postData := url.Values{
 					"dt":    {t.Add(time.Duration(fake.Year(1, 360)) * time.Second).Format(ipasserver.DateDefault)},
 					"cstid": {cstid},
 					"srcid": {srcid},
@@ -82,7 +85,8 @@ func main() {
 					"sesid": {sesid},
 				}
 
-				_, err := http.PostForm("http://"+*addr+"/status", values)
+				log.Info(statusUrl+"?"+postData.Encode())
+				_, err := http.PostForm(statusUrl, postData)
 				if err != nil {
 					panic(err)
 				}
@@ -93,7 +97,7 @@ func main() {
 			if eventType == 3 {
 				spd = strconv.Itoa(NumberRange(13, 33))
 			}
-			values = url.Values{
+			postData = url.Values{
 				"dt":    {dt},
 				"cstid": {cstid},
 				"srcid": {srcid},
@@ -107,7 +111,9 @@ func main() {
 				"dist":  {fake.DigitsN(1)},
 				"sesid": {sesid},
 			}
-			_, err = http.PostForm("http://"+*addr+"/event", values)
+
+			log.Info(eventUrl+"?"+postData.Encode())
+			_, err = http.PostForm(eventUrl, postData)
 			if err != nil {
 				panic(err)
 			}

@@ -7,8 +7,6 @@ import (
 	"net/http"
 )
 
-// http://127.0.0.1:8080/status?dt=2006-01-02%2015%3A04%3A05&srcid=VTSAMPLE&lat=126.886559&lon=37.480888&spd=1234.1
-
 // 상태정보 수신기
 type StatusReceiver struct {
 	router *httprouter.Router
@@ -21,6 +19,26 @@ func NewStatusReceiver(router *httprouter.Router) *StatusReceiver {
 
 func (r *StatusReceiver) Start(c chan<- *objs.Event) error {
 	r.router.POST("/status", func(resp http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		m := make(map[string]string)
+		host, _, _ := net.SplitHostPort(req.RemoteAddr)
+		event := objs.NewEvent(objs.StatusEvent, host)
+
+		req.ParseForm()
+		m["dt"] = req.Form.Get("dt")
+		m["cstid"] = req.Form.Get("cstid")
+		m["srcid"] = req.Form.Get("srcid")
+		m["lat"] = req.Form.Get("lat")
+		m["lon"] = req.Form.Get("lon")
+		m["spd"] = req.Form.Get("spd")
+		m["snr"] = req.Form.Get("snr")
+		m["ctn"] = req.Form.Get("ctn")
+		m["sesid"] = req.Form.Get("sesid")
+		event.Parsed = m
+
+		c <- event
+	})
+
+	r.router.GET("/status", func(resp http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		m := make(map[string]string)
 		host, _, _ := net.SplitHostPort(req.RemoteAddr)
 		event := objs.NewEvent(objs.StatusEvent, host)
@@ -54,6 +72,32 @@ func NewEventReceiver(router *httprouter.Router) *EventReceiver {
 
 func (e *EventReceiver) Start(c chan<- *objs.Event) error {
 	e.router.POST("/event", func(resp http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		m := make(map[string]string)
+		host, _, _ := net.SplitHostPort(req.RemoteAddr)
+		event := objs.NewEvent(objs.LogEvent, host)
+
+		req.ParseForm()
+		m["dt"] = req.Form.Get("dt")
+		m["cstid"] = req.Form.Get("cstid")
+		m["srcid"] = req.Form.Get("srcid")
+		m["dstid"] = req.Form.Get("dstid")
+		m["lat"] = req.Form.Get("lat")
+		m["lon"] = req.Form.Get("lon")
+		m["spd"] = req.Form.Get("spd")
+		m["snr"] = req.Form.Get("snr")
+		m["ctn"] = req.Form.Get("ctn")
+		m["type"] = req.Form.Get("type")
+		//if m["type"] == "1" {
+		//	return
+		//}
+		m["dist"] = req.Form.Get("dist")
+		m["sesid"] = req.Form.Get("sesid")
+		event.Parsed = m
+
+		c <- event
+	})
+
+	e.router.GET("/event", func(resp http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		m := make(map[string]string)
 		host, _, _ := net.SplitHostPort(req.RemoteAddr)
 		event := objs.NewEvent(objs.LogEvent, host)
