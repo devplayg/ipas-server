@@ -18,6 +18,11 @@ create user 'devplayg'@'localhost' identified by 'devplayg123';
 grant all privileges on ipasm.* to 'devplayg'@'localhost';
 flush privileges;
 
+create user 'kws'@'%' identified by 'kws';
+grant all privileges on ipasm.* to 'kws'@'%';
+create user 'kws'@'localhost' identified by 'kws123!@#';
+grant all privileges on ipasm.* to 'kws'@'localhost';
+flush privileges;
 
 
 

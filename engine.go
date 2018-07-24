@@ -2,6 +2,7 @@ package ipasserver
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"flag"
 	"fmt"
 	"github.com/devplayg/golibs/secureconfig"
@@ -13,7 +14,6 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
-	"database/sql"
 )
 
 const (
@@ -39,9 +39,10 @@ type Engine struct {
 	cpuCount    int
 	processName string
 	ProcessDir  string
+	TempDir     string
 	logOutput   int // 0: STDOUT, 1: File
-	LogPrefix string
-	DB *sql.DB
+	LogPrefix   string
+	DB          *sql.DB
 }
 
 func NewEngine(appName string, debug bool, verbose bool) *Engine {
@@ -84,19 +85,27 @@ func (e *Engine) Start() error {
 	var err error
 
 	// 필수 디렉토리 생성
-	dirs := []string{"conf", "data", "backup", "logs", "tmp"}
+	dirs := []string{"conf", "data", "logs", "tmp"}
 	for _, d := range dirs {
 		if err := e.checkSubDir(d); err != nil {
 			return err
 		}
 	}
 
+	// 임시 디렉토리 설정
+	e.TempDir = filepath.Join(e.ProcessDir, "tmp")
+
 	// 설정파일 읽기
 	e.Config, err = secureconfig.GetConfig(e.ConfigPath, GetEncryptionKey())
 	if err != nil {
 		return err
 	}
-	log.Infof("Engine started. GOMAXPROCS set to %d", runtime.GOMAXPROCS(0))
+	log.Infof("%s started. GOMAXPROCS set to %d", e.appName, runtime.GOMAXPROCS(0))
+	return nil
+}
+
+func (e *Engine) StartQuietly() error {
+	e.TempDir = filepath.Join(e.ProcessDir, "tmp")
 	return nil
 }
 
@@ -177,7 +186,6 @@ func (e *Engine) InitDatabase(idleConns, openConns int) error {
 	e.DB = db
 	return nil
 }
-
 
 func (e *Engine) UpdateConfig(section, keyword, value_s string, value_n int) error {
 	query := `

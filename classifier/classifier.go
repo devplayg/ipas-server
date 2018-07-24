@@ -136,7 +136,7 @@ func (c *Classifier) deal(filename string) error {
 	defer func() {
 		file.Close()
 		if c.engine.IsDebug() {
-			os.Rename(file.Name(), filepath.Join(c.engine.ProcessDir, "backup", filepath.Base(file.Name())) )
+			os.Rename(file.Name(), filepath.Join(c.engine.TempDir, filepath.Base(file.Name())) )
 		} else {
 			os.Remove(file.Name())
 		}

@@ -123,12 +123,12 @@ func (s *Stacker) Start(errChan chan<- error) error {
 					timer.Reset(s.duration)
 				}
 				if len(batch) == s.size {
-					log.Debugf("### FULL")
+					log.Debugf("queue is full")
 					timer.Stop()
 					save()
 				}
 			case <-timer.C:
-				log.Debugf("### TIMEOUT")
+				log.Debugf("queue timeout")
 				//stats.Add("batchTimeout", 1)
 				save()
 			}
