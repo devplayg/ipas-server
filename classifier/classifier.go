@@ -180,7 +180,7 @@ func (c *Classifier) classify(file *os.File) error {
 			orgId = valOrg.(int)
 		} else {
 			// 기관코드 없는 이벤트는 제외
-			log.Warnf("[unclassified] %s", scanner.Text())
+			log.Warnf("invalid cstid: %s", scanner.Text())
 			continue
 		}
 
