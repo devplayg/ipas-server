@@ -85,7 +85,7 @@ func main() {
 					"sesid": {sesid},
 				}
 
-				log.Info(statusUrl+"?"+postData.Encode())
+				//log.Info(statusUrl+"?"+postData.Encode())
 				_, err := http.PostForm(statusUrl, postData)
 				if err != nil {
 					panic(err)
@@ -112,7 +112,7 @@ func main() {
 				"sesid": {sesid},
 			}
 
-			log.Info(eventUrl+"?"+postData.Encode())
+			//log.Info(eventUrl+"?"+postData.Encode())
 			_, err = http.PostForm(eventUrl, postData)
 			if err != nil {
 				panic(err)
