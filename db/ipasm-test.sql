@@ -1,6 +1,3 @@
-
-
-
 update log_ipas_event
 set date = date_add(date, interval datediff(now(), date) day)
 where date >= '2017-03-17 00:00:00';
@@ -9,7 +6,19 @@ update log_ipas_status
 set date = date_add(date, interval datediff(now(), date) day)
 where date >= '2017-03-17 00:00:00';
 
+--
 
+
+
+update log_ipas_event
+set date = date_add(date, interval FLOOR(1 + (RAND() * 86400 * 30)) * -1 second)
+where date >= '2017-03-17 00:00:00';
+
+update log_ipas_status
+set date = date_add(date, interval FLOOR(1 + (RAND() * 86400 * 30)) * -1 second)
+where date >= '2017-03-17 00:00:00';
+
+--
 
 
 create user 'devplayg'@'%' identified by 'devplayg';

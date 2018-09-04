@@ -2,6 +2,7 @@ package calculator
 
 import (
 	"fmt"
+	"github.com/devplayg/ipas-server"
 	"github.com/devplayg/ipas-server/objs"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -505,22 +506,41 @@ func (c *eventStatsCalculator) insert() error {
 	}
 
 	// Session count by equip
-	tempSessionByEquipFile, err := ioutil.TempFile(c.calculator.tmpDir, "stats_activated_equip_")
+	tempSessionByEquipCountFile, err := ioutil.TempFile(c.calculator.tmpDir, "stats_activated_equip_")
+	tempSessionByEquipFile, err := ioutil.TempFile(c.calculator.tmpDir, "stats_operation_record_")
 	if err != nil {
 		return err
 	}
 	if !c.calculator.engine.IsDebug() {
-		defer os.Remove(tempSessionByEquipFile.Name())
+		defer os.Remove(tempSessionByEquipCountFile.Name())
 	}
 	for orgId, m := range c.sessionByEquipStats {
 		for equipId, arr := range m {
 			optime := getOperatingTime(c.optimeByEquipStats[orgId][equipId])
 			line := fmt.Sprintf("%s\t%d\t%s\t%d\t%3.0f\n", c.mark, orgId, equipId, len(arr), optime)
-			tempSessionByEquipFile.WriteString(line)
+			tempSessionByEquipCountFile.WriteString(line)
+
+			// 운행시간, 실사용시간(이동시간+작업시간) 계산
+			for sessionId, time := range c.optimeByEquipStats[orgId][equipId] {
+				line := fmt.Sprintf("%s\t%s\t%s\t%d\t%s\t%s\t%3.0f\t%3.0f\t%3.0f\n",
+					c.mark,
+					time[0].Format(ipasserver.DateDefault),
+					time[1].Format(ipasserver.DateDefault),
+					orgId,
+					equipId,
+					sessionId,
+					time[1].Sub(time[0]).Seconds(),
+					0.0,
+					0.0,
+				)
+				tempSessionByEquipFile.WriteString(line)
+			}
 		}
 	}
-	tempSessionByEquipFile.Close()
-	query = fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_activated_equip", tempSessionByEquipFile.Name())
+
+	// 장비별 운행 기록(건수)
+	tempSessionByEquipCountFile.Close()
+	query = fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_activated_equip", tempSessionByEquipCountFile.Name())
 	_, err = c.calculator.engine.DB.Exec(query)
 	if err == nil {
 		//num, _ := rs.RowsAffected()
@@ -530,6 +550,17 @@ func (c *eventStatsCalculator) insert() error {
 		return err
 	}
 
+	tempSessionByEquipFile.Close()
+	query = fmt.Sprintf("LOAD DATA LOCAL INFILE %q INTO TABLE stats_operation_record", tempSessionByEquipFile.Name())
+	_, err = c.calculator.engine.DB.Exec(query)
+	if err == nil {
+		//num, _ := rs.RowsAffected()
+		//log.Debugf("cal_type=%d, stats_type=%d, category=%s, affected_rows=%d", c.calculator.calType, ExtraStats, "operation_record", num)
+	} else {
+		log.Error(err)
+		return err
+	}
+	//if !c.calculator.engine.IsDebug() {
 	return nil
 }
 

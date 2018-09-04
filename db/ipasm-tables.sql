@@ -1,8 +1,8 @@
--- MySQL dump 10.16  Distrib 10.2.14-MariaDB, for Linux (x86_64)
+-- MySQL dump 10.16  Distrib 10.2.16-MariaDB, for Linux (x86_64)
 --
 -- Host: localhost    Database: ipasm
 -- ------------------------------------------------------
--- Server version	10.2.14-MariaDB
+-- Server version	10.2.16-MariaDB-log
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -294,6 +294,24 @@ CREATE TABLE `log_message` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `log_message_temp`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `log_message_temp` (
+  `group_id` int(10) unsigned NOT NULL DEFAULT 0,
+  `date` datetime NOT NULL,
+  `sender_id` smallint(5) unsigned NOT NULL,
+  `priority` int(11) NOT NULL,
+  `category` varchar(32) NOT NULL,
+  `message` varchar(256) NOT NULL,
+  `url` varchar(512) NOT NULL,
+  KEY `ix_groupId` (`group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `log_sample`
 --
 
@@ -393,7 +411,8 @@ CREATE TABLE `mbr_member` (
   `created` datetime NOT NULL DEFAULT current_timestamp(),
   `last_updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`member_id`),
-  UNIQUE KEY `username` (`username`)
+  UNIQUE KEY `username` (`username`),
+  KEY `position` (`position`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -636,6 +655,27 @@ CREATE TABLE `stats_evt4_by_group` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `stats_operation_record`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `stats_operation_record` (
+  `date` datetime NOT NULL,
+  `start` datetime NOT NULL,
+  `end` datetime NOT NULL,
+  `org_id` int(10) unsigned NOT NULL,
+  `equip_id` varchar(16) NOT NULL,
+  `session_id` varchar(64) NOT NULL,
+  `operation_time` int(11) NOT NULL DEFAULT 0,
+  `moving_time` int(11) NOT NULL DEFAULT 0,
+  `working_time` int(11) NOT NULL DEFAULT 0,
+  KEY `ix_date` (`date`),
+  KEY `ix_default` (`start`,`org_id`,`equip_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `stats_shocklinks`
 --
 
@@ -698,4 +738,4 @@ CREATE TABLE `sys_config` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-07-15 18:42:03
+-- Dump completed on 2018-09-04 23:39:55

@@ -2,6 +2,7 @@ package classifier
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/devplayg/golibs/network"
@@ -136,7 +137,7 @@ func (c *Classifier) deal(filename string) error {
 	defer func() {
 		file.Close()
 		if c.engine.IsDebug() {
-			os.Rename(file.Name(), filepath.Join(c.engine.TempDir, filepath.Base(file.Name())) )
+			os.Rename(file.Name(), filepath.Join(c.engine.TempDir, filepath.Base(file.Name())))
 		} else {
 			os.Remove(file.Name())
 		}
@@ -153,9 +154,11 @@ func (c *Classifier) deal(filename string) error {
 	return nil
 }
 
+// 이벤트 분류
 func (c *Classifier) classify(file *os.File) error {
 	var statusData string
 	var eventData string
+	var alarmData string
 
 	// 라인 단위로 파일 읽기
 	scanner := bufio.NewScanner(file)
@@ -190,7 +193,7 @@ func (c *Classifier) classify(file *os.File) error {
 			//log.Debugf("[%s] %d == %d ", r[6], orgId, obj.OrgId)
 			if orgId == obj.OrgId { // 기관코드과 기존과 동일하면
 				groupId = obj.GroupId // 그룹코드 유지
-			}
+			} // 다른 경우는, org 코드가 바뀐 것으로 간주???? - 검토필요
 		}
 
 		if r[0] == "1" { // 데이터 타입이 "이벤트" 이면
@@ -211,6 +214,28 @@ func (c *Classifier) classify(file *os.File) error {
 			//13	distance
 			//14	ip
 			//15	recv_date
+
+			if r[13] == "3" || r[13] == "4" { // 과속 또는 근접 이벤트이면
+				category := "speeding"
+				if r[13] == "4" {
+					category = "proximity"
+				}
+
+				j, _ := json.Marshal(map[string]string{
+					"code":     r[5],
+					"equip_id": r[6],
+					"date":     r[3],
+				})
+
+				alarmData += fmt.Sprintf("%d\t%s\t%d\t%d\t%s\t%s\t%s\n", groupId, r[3], 0, 4, category, j, "")
+				// group_id
+				// date
+				// sender_id
+				// priority
+				// category
+				// message
+				// url
+			}
 
 		} else if r[0] == "2" { // 데이터 타입이 "상태정보"이면
 			equipType := 0
@@ -289,12 +314,33 @@ func (c *Classifier) classify(file *os.File) error {
 		}
 	}
 
+	if len(alarmData) > 0 {
+		// 파일에 기록
+		f, err := c.writeDataToFile(&alarmData, "alarm_")
+		if err != nil {
+			return err
+		}
+		if !c.engine.IsDebug() {
+			defer os.Remove(f.Name())
+		}
+
+		// 상태 DB테이블에 기록
+		if err := c.insertIpasAlarmDataToTemp(f.Name()); err != nil { // 상태정보에 사용
+			return err
+		}
+
+		// 알람 발송
+		if err := c.generateAlarms(); err != nil { // 상태정보에 사용
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (c *Classifier) insertIpasEventData(filename string) error {
 	query := `
-		LOAD DATA LOCAL INFILE '%s'
+		LOAD DATA LOCAL INFILE %q
 		INTO TABLE log_ipas_event
 		FIELDS TERMINATED BY '\t'
 		LINES TERMINATED BY '\n' 
@@ -334,7 +380,7 @@ func (c *Classifier) writeDataToFile(str *string, prefix string) (*os.File, erro
 
 func (c *Classifier) insertIpasStatusData(filename string) error {
 	query := `
-		LOAD DATA LOCAL INFILE '%s'
+		LOAD DATA LOCAL INFILE %q
 		INTO TABLE log_ipas_status
 		FIELDS TERMINATED BY '\t'
 		LINES TERMINATED BY '\n' 
@@ -355,7 +401,7 @@ func (c *Classifier) insertIpasStatusDataToTemp(filename string) error {
 
 	// 상태정보를 임시 테이블에 게록
 	query = `
-		LOAD DATA LOCAL INFILE '%s'
+		LOAD DATA LOCAL INFILE %q
 		INTO TABLE ast_ipas_temp
 		FIELDS TERMINATED BY '\t'
 		LINES TERMINATED BY '\n' 
@@ -369,6 +415,64 @@ func (c *Classifier) insertIpasStatusDataToTemp(filename string) error {
 
 	return nil
 }
+
+func (c *Classifier) insertIpasAlarmDataToTemp(filename string) error {
+	var query string
+
+	// 상태정보를 임시 테이블에 게록
+	query = `
+		LOAD DATA LOCAL INFILE %q
+		INTO TABLE log_message_temp
+		FIELDS TERMINATED BY '\t'
+		LINES TERMINATED BY '\n' 
+		(group_id, date, sender_id, priority, category, message, url)
+	`
+	query = fmt.Sprintf(query, filepath.ToSlash(filename))
+	_, err := c.engine.DB.Exec(query)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Classifier) generateAlarms() error {
+	var query string
+
+	// 모든 관리자에게 알람 발송
+	query = `
+		insert into log_message(date, status, receiver_id, sender_id, priority, category, message, url)
+		select date, 1, m.member_id, 10, t.priority, t.category, t.message, t.url
+		from log_message_temp t left outer join mbr_member m on true
+		where m.position >= 512
+	`
+	_, err := c.engine.DB.Exec(query)
+	if err != nil {
+		return err
+	}
+
+	// 일반 사용자에게 알람 발송
+	query = `
+		insert into log_message(date, status, receiver_id, sender_id, priority, category, message, url)
+		select date, 1, m.member_id, 10, t.priority, t.category, t.message, t.url
+		from log_message_temp t
+	 		join mbr_asset m on m.asset_id = t.group_id
+	 		left outer join mbr_member m2 on m2.member_id = m.member_id 
+		where group_id > 0 and m2.position < 512
+	`
+	_, err = c.engine.DB.Exec(query)
+	if err != nil {
+		return err
+	}
+
+	query = "truncate table log_message_temp"
+	if _, err := c.engine.DB.Exec(query); err != nil {
+		log.Error(err)
+	}
+
+	return nil
+}
+
 func (c *Classifier) updateIpasStatus() error {
 	// 상태정보 업데이트
 	query := `
@@ -386,10 +490,10 @@ func (c *Classifier) updateIpasStatus() error {
 			ip = values(ip),
 			updated = values(updated);
 	`
-	rs, err := c.engine.DB.Exec(query)
+	_, err := c.engine.DB.Exec(query)
 	if err == nil {
-		rowsAffected, _ := rs.RowsAffected()
-		log.Debugf("table=%s, affected_rows=%d", "status", rowsAffected)
+		//rowsAffected, _ := rs.RowsAffected()
+		//log.Debugf("table=%s, affected_rows=%d", "status", rowsAffected)
 		// 테이블 비우기
 		query = "truncate table ast_ipas_temp"
 		if _, err := c.engine.DB.Exec(query); err != nil {
