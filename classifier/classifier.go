@@ -437,24 +437,17 @@ func (c *Classifier) insertIpasAlarmDataToTemp(filename string) error {
 }
 
 func (c *Classifier) generateAlarms() error {
-	var query string
-
-	// 모든 관리자에게 알람 발송
-	query = `
+	query := `
 		insert into log_message(date, status, receiver_id, sender_id, priority, category, message, url)
+
+		-- 모든 관리자에게 알람 발송
 		select date, 1, m.member_id, 10, t.priority, t.category, t.message, t.url
 		from log_message_temp t left outer join mbr_member m on true
 		where m.position >= 512
-		order by date asc
-	`
-	_, err := c.engine.DB.Exec(query)
-	if err != nil {
-		return err
-	}
-
-	// 일반 사용자에게 알람 발송
-	query = `
-		insert into log_message(date, status, receiver_id, sender_id, priority, category, message, url)
+		
+		union all
+		
+		-- 일반 사용자에게 알람 발송
 		select date, 1, m.member_id, 10, t.priority, t.category, t.message, t.url
 		from log_message_temp t
 	 		join mbr_asset m on m.asset_id = t.group_id
@@ -462,10 +455,25 @@ func (c *Classifier) generateAlarms() error {
 		where group_id > 0 and m2.position < 512
 		order by date asc
 	`
-	_, err = c.engine.DB.Exec(query)
+	_, err := c.engine.DB.Exec(query)
 	if err != nil {
 		return err
 	}
+
+	////
+	//query = `
+	//	insert into log_message(date, status, receiver_id, sender_id, priority, category, message, url)
+	//	select date, 1, m.member_id, 10, t.priority, t.category, t.message, t.url
+	//	from log_message_temp t
+	// 		join mbr_asset m on m.asset_id = t.group_id
+	// 		left outer join mbr_member m2 on m2.member_id = m.member_id
+	//	where group_id > 0 and m2.position < 512
+	//	order by date asc
+	//`
+	//_, err = c.engine.DB.Exec(query)
+	//if err != nil {
+	//	return err
+	//}
 
 	query = "truncate table log_message_temp"
 	if _, err := c.engine.DB.Exec(query); err != nil {
