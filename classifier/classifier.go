@@ -445,6 +445,7 @@ func (c *Classifier) generateAlarms() error {
 		select date, 1, m.member_id, 10, t.priority, t.category, t.message, t.url
 		from log_message_temp t left outer join mbr_member m on true
 		where m.position >= 512
+		order by date asc
 	`
 	_, err := c.engine.DB.Exec(query)
 	if err != nil {
