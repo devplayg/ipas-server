@@ -222,12 +222,14 @@ func (c *Classifier) classify(file *os.File) error {
 				}
 
 				j, _ := json.Marshal(map[string]string{
-					"code":     r[5],
+					"event":    category,
+					"org_id":   r[5],
 					"equip_id": r[6],
+					"targets":  r[7],
 					"date":     r[3],
 				})
 
-				alarmData += fmt.Sprintf("%d\t%s\t%d\t%d\t%s\t%s\t%s\n", groupId, r[3], 0, 4, category, j, "")
+				alarmData += fmt.Sprintf("%d\t%s\t%d\t%d\t%s\t%s\t%s\n", groupId, r[3], 0, objs.WarningMessage, category, j, "")
 				// group_id
 				// date
 				// sender_id
@@ -460,21 +462,7 @@ func (c *Classifier) generateAlarms() error {
 		return err
 	}
 
-	////
-	//query = `
-	//	insert into log_message(date, status, receiver_id, sender_id, priority, category, message, url)
-	//	select date, 1, m.member_id, 10, t.priority, t.category, t.message, t.url
-	//	from log_message_temp t
-	// 		join mbr_asset m on m.asset_id = t.group_id
-	// 		left outer join mbr_member m2 on m2.member_id = m.member_id
-	//	where group_id > 0 and m2.position < 512
-	//	order by date asc
-	//`
-	//_, err = c.engine.DB.Exec(query)
-	//if err != nil {
-	//	return err
-	//}
-
+	// 임시 데이터 삭제
 	query = "truncate table log_message_temp"
 	if _, err := c.engine.DB.Exec(query); err != nil {
 		log.Error(err)
