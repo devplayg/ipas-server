@@ -460,6 +460,7 @@ func (c *Classifier) generateAlarms() error {
 	 		join mbr_asset m on m.asset_id = t.group_id
 	 		left outer join mbr_member m2 on m2.member_id = m.member_id 
 		where group_id > 0 and m2.position < 512
+		order by date asc
 	`
 	_, err = c.engine.DB.Exec(query)
 	if err != nil {
