@@ -227,6 +227,9 @@ func (c *Classifier) classify(file *os.File) error {
 					"equip_id": r[6],
 					"targets":  r[7],
 					"date":     r[3],
+					"speed":    r[10],
+					"snr":      r[11],
+					"distance": r[14],
 				})
 
 				alarmData += fmt.Sprintf("%d\t%s\t%d\t%d\t%s\t%s\t%s\n", groupId, r[3], 0, objs.WarningMessage, category, j, "")
