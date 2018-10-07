@@ -38,9 +38,10 @@ type Calculator struct {
 	extraTableKeys []string           // 상태 통계 테이블
 	tmpDir         string             // 임시 디렉토리
 	eventRank      objs.DataRank
+	loc            *time.Location
 }
 
-func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, calType int, targetDate string) *Calculator {
+func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, calType int, targetDate string, loc *time.Location) *Calculator {
 	return &Calculator{
 		engine:     engine,
 		top:        top,
@@ -53,7 +54,7 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 			"timeline",      // 타임라인
 			"shocklinks",    // 타임라인
 			"evt",           // 이벤트 유형별 통계
-			"evt1_by_equip", // 이벤트 유형별(1~4) 장비 통계(상세)
+			"evt1_by_equip", // 이벤트 유형별(1~4, 시동,충격,과속,근접) 장비 통계(상세)
 			"evt2_by_equip",
 			"evt3_by_equip",
 			"evt4_by_equip",
@@ -68,6 +69,7 @@ func NewCalculator(engine *ipasserver.Engine, top int, interval time.Duration, c
 			"activated_equip",  // 장비별 사용건수 및 사용시간
 			"operation_record", // 장비별 운행 및 실사용 기록
 		},
+		loc: loc,
 	}
 }
 
@@ -128,9 +130,11 @@ func (c *Calculator) Start() error {
 		}
 
 		// 통계 산출
+		from, _ := time.ParseInLocation(ipasserver.DateDefault, t.Format("2006-01-02")+" 00:00:00", c.loc)
+		to, _ := time.ParseInLocation(ipasserver.DateDefault, t.Format("2006-01-02")+" 23:59:59", c.loc)
 		if err := c.calculate(
-			t.Format("2006-01-02")+" 00:00:00",
-			t.Format("2006-01-02")+" 23:59:59",
+			from.UTC().Format(ipasserver.DateDefault), // UTC
+			to.UTC().Format(ipasserver.DateDefault),   // UTC
 			t.Format("2006-01-02")+" 00:00:00",
 		); err != nil {
 			log.Error(err)
@@ -168,13 +172,15 @@ func (c *Calculator) Start() error {
 		go func() {
 			log.Debugf("cal_type=%d, interval=%s", c.calType, c.interval.String())
 			for {
-				t := time.Now()
+				t := time.Now().In(c.loc)
+				from, _ := time.ParseInLocation(ipasserver.DateDefault, t.Format("2006-01-02")+" 00:00:00", c.loc)
+				to, _ := time.ParseInLocation(ipasserver.DateDefault, t.Format("2006-01-02")+" 23:59:59", c.loc)
 
 				// 통계산출
 				if err := c.calculate(
-					t.Format("2006-01-02")+" 00:00:00",
-					t.Format("2006-01-02")+" 23:59:59",
-					t.Format(ipasserver.DateDefault),
+					from.UTC().Format(ipasserver.DateDefault), // UTC
+					to.UTC().Format(ipasserver.DateDefault),   // UTC
+					t.Format(ipasserver.DateDefault),          // User-defined time
 				); err == nil {
 					// 최종 통계산출 시간 업데이트
 					if err := c.engine.UpdateConfig("stats", "last_updated", t.Format(ipasserver.DateDefault), 0); err == nil {
@@ -206,7 +212,7 @@ func (c *Calculator) calculate(from, to, mark string) error {
 	}
 
 	start := time.Now()
-	log.Debugf("cal_type=%d, stats_from=%s, stats_to=%s, stats_mark=%s", c.calType, from, to, mark)
+	log.Debugf("cal_type=%d, stats_from=%s(UTC), stats_to=%s(UTC), stats_mark=%s(%s)", c.calType, from, to, mark, c.loc.String())
 	wg := new(sync.WaitGroup)
 
 	// 이벤트 통계

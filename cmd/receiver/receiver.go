@@ -47,7 +47,7 @@ func main() {
 	if *setConfig {
 		secureconfig.SetConfig(
 			engine.ConfigPath,
-			"db.hostname, db.port, db.username, db.password, db.database",
+			"db.hostname, db.port, db.username, db.password, db.database, timezone",
 			ipasserver.GetEncryptionKey(),
 		)
 		return
@@ -58,7 +58,6 @@ func main() {
 		log.Fatal(err)
 	}
 	defer engine.Stop()
-	log.Debug(engine.Config)
 
 	// Receiver(수집기) 시작
 	timeout := time.Duration(*batchTimeout) * time.Millisecond

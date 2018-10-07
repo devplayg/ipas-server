@@ -31,6 +31,8 @@ func main() {
 		interval     = ipasserver.CmdFlags.Int64("interval", 5000, "Interval(ms)")
 		specificDate = ipasserver.CmdFlags.String("date", "", "Specific date")
 		dateRange    = ipasserver.CmdFlags.String("range", "", "Date range(StartDate,EndDate,MarkDate)")
+		timezone     = ipasserver.CmdFlags.String("tz", "Local", "Date range(StartDate,EndDate,MarkDate)")
+		// Asia/Singapore
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -46,17 +48,22 @@ func main() {
 	if *setConfig {
 		secureconfig.SetConfig(
 			engine.ConfigPath,
-			"db.hostname, db.port, db.username, db.password, db.database",
+			"db.hostname, db.port, db.username, db.password, db.database, timezone",
 			ipasserver.GetEncryptionKey(),
 		)
 		return
 	}
 
+	loc, err := time.LoadLocation(*timezone)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+
 	// 엔진 시작
 	if err := engine.Start(); err != nil {
 		log.Fatal(err)
 	}
-	log.Debug(engine.Config)
 
 	// 데이터베이스 연결
 	if err := engine.InitDatabase(2, 2); err != nil {
@@ -67,7 +74,7 @@ func main() {
 	// 통계산출 시작
 	calType, targetDate := getCalculatorType(*specificDate, *dateRange)
 	dur := time.Duration(*interval) * time.Millisecond
-	cal := calculator.NewCalculator(engine, *top, dur, calType, targetDate)
+	cal := calculator.NewCalculator(engine, *top, dur, calType, targetDate, loc)
 	if err := cal.Start(); err != nil {
 		log.Fatal(err)
 	}

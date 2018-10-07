@@ -154,6 +154,27 @@ func (c *Classifier) deal(filename string) error {
 	return nil
 }
 
+//
+//func (c *Classifier) classify2(file *os.File) error {
+//	statusFile, err := ioutil.TempFile(c.tmpDir, "status_")
+//	if err != nil {
+//		return err
+//	}
+//	defer os.Remove(statusFile.Name())
+//
+//	eventFile, err := ioutil.TempFile(c.tmpDir, "event_")
+//	if err != nil {
+//		return err
+//	}
+//	defer os.Remove(eventFile.Name())
+//
+//	alarmFile, err := ioutil.TempFile(c.tmpDir, "file_")
+//	if err != nil {
+//		return err
+//	}
+//	defer os.Remove(alarmFile.Name())
+//}
+
 // 이벤트 분류
 func (c *Classifier) classify(file *os.File) error {
 	var statusData string
@@ -165,9 +186,10 @@ func (c *Classifier) classify(file *os.File) error {
 	for scanner.Scan() {
 
 		// 파싱
-		//	1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	VT_SAM_8_20180411170103_1	SAM	VT_SAM_8	VT_SAM_0	37.19359	128.70250	9	8	2-423-618-38-65	4	9
+		//	1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	VT_SAM_8_20180411170103_1	SAM	VT_SAM_8	VT_SAM_0	37.19359	128.70250	9	8	2-423-618-38-65	4	9	0900
 		//	1	127.0.0.1	2018-04-11 17:01:03	2018-04-11 17:01:03	PT_LG_6_20180411170103_1	LG	PT_LG_6		ZT_LG_2		37.66667	127.72560	22	1	7-677-105-37-04	1	1
 		r := strings.Split(scanner.Text(), "\t")
+
 
 		// 문자열 IP를 정수형 IP로 변환
 		r[1] = strconv.FormatUint(uint64(network.IpToInt32(net.ParseIP(r[1]))), 10)
@@ -196,9 +218,21 @@ func (c *Classifier) classify(file *os.File) error {
 			} // 다른 경우는, org 코드가 바뀐 것으로 간주???? - 검토필요
 		}
 
+		log.Debugf("data length: %d", len(r))
+
 		if r[0] == "1" { // 데이터 타입이 "이벤트" 이면
+			var tz string
+			if len(r) >= 16 {
+				tz = r[15]
+			}
+
+			// 시간을 UTC로 변환
+			utcTime, err := c.ToUtcDate(r[3], tz)
+			if err != nil {
+				log.Error(err)
+			}
 			eventData += fmt.Sprintf("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-				r[3], orgId, groupId, r[13], r[4], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[14], r[1], r[2])
+				utcTime, orgId, groupId, r[13], r[4], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[14], r[1], r[2])
 			//1	date
 			//2	org_id
 			//3	group_id
@@ -232,7 +266,7 @@ func (c *Classifier) classify(file *os.File) error {
 					"distance": r[14],
 				})
 
-				alarmData += fmt.Sprintf("%d\t%s\t%d\t%d\t%s\t%s\t%s\n", groupId, r[3], 0, objs.WarningMessage, category, j, "")
+				alarmData += fmt.Sprintf("%d\t%s\t%d\t%d\t%s\t%s\t%s\n", groupId, utcTime, 0, objs.WarningMessage, category, j, "")
 				// group_id
 				// date
 				// sender_id
@@ -243,6 +277,7 @@ func (c *Classifier) classify(file *os.File) error {
 			}
 
 		} else if r[0] == "2" { // 데이터 타입이 "상태정보"이면
+
 			equipType := 0
 			if strings.HasPrefix(r[4], "PT") {
 				equipType = objs.PedestrianTag
@@ -252,8 +287,18 @@ func (c *Classifier) classify(file *os.File) error {
 				equipType = objs.ZoneTag
 			}
 
+			// 시간을 UTC로 변환
+			var tz string
+			if len(r) >= 13 {
+				tz = r[12]
+			}
+			utcTime, err := c.ToUtcDate(r[3], tz)
+			if err != nil {
+				log.Error(err)
+			}
+
 			statusData += fmt.Sprintf("%s\t%d\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-				r[3], orgId, groupId, equipType, r[4], r[6], r[7], r[8], r[9], r[10], r[11], r[1], r[2])
+				utcTime, orgId, groupId, equipType, r[4], r[6], r[7], r[8], r[9], r[10], r[11], r[1], r[2])
 			//1		date
 			//2		org_id
 			//3		group_id
@@ -503,6 +548,25 @@ func (c *Classifier) updateIpasStatus() error {
 	}
 
 	return err
+}
+
+func (c *Classifier) ToUtcDate(timeStr, tz string) (string, error) {
+	timeZone := tz
+	if len(tz) == 4 { // 0900
+		timeZone = "+" + tz
+	} else if len(tz) == 0 { // 시간 정보가 없으면
+		t, err := time.ParseInLocation(ipasserver.DateDefault, timeStr, c.engine.TimeZone)
+		if err != nil {
+			return timeStr, err
+		}
+		return t.UTC().Format(ipasserver.DateDefault), nil
+	}
+
+	t, err := time.Parse("2006-01-02 15:04:05Z0700", timeStr+timeZone)
+	if err != nil {
+		return timeStr, err
+	}
+	return t.UTC().Format(ipasserver.DateDefault), nil
 }
 
 //date, equip_id, latitude, longitude, speed, snr, usim, event_type, distance

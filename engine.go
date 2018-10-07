@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 )
 
 const (
@@ -43,6 +44,7 @@ type Engine struct {
 	logOutput   int // 0: STDOUT, 1: File
 	LogPrefix   string
 	DB          *sql.DB
+	TimeZone    *time.Location
 }
 
 func NewEngine(appName string, debug bool, verbose bool) *Engine {
@@ -61,6 +63,26 @@ func NewEngine(appName string, debug bool, verbose bool) *Engine {
 
 func (e *Engine) IsDebug() bool {
 	return e.debug
+}
+
+// https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+func (e *Engine) setTimeZone() {
+	if e.Config["timezone"] == "" {
+		// 기본 시간은 시스템 타임설정 참조
+		e.TimeZone = time.Local
+	} else {
+		loc, err := time.LoadLocation(e.Config["timezone"])
+		if err != nil {
+			log.WithFields(log.Fields{
+				"reference": "https://en.wikipedia.org/wiki/List_of_tz_database_time_zones",
+				"timezone":  e.Config["timezone"],
+			}).Error("invalid timezone")
+			e.TimeZone = time.Local
+		} else {
+			e.TimeZone = loc
+		}
+	}
+	log.WithField("timezone", e.TimeZone).Info()
 }
 
 func (e *Engine) CheckError(err error) {
@@ -100,6 +122,9 @@ func (e *Engine) Start() error {
 	if err != nil {
 		return err
 	}
+
+	// 타임존 셋팅
+	e.setTimeZone()
 	log.Infof("%s started. GOMAXPROCS set to %d", e.appName, runtime.GOMAXPROCS(0))
 	return nil
 }
@@ -158,7 +183,7 @@ func (e *Engine) initLogger(verbose bool) error {
 	}
 
 	if log.GetLevel() != log.InfoLevel {
-		log.Infof("LoggingLevel=%s", log.GetLevel())
+		log.WithField("logging_level", log.GetLevel()).Info()
 	}
 
 	return nil
@@ -166,14 +191,23 @@ func (e *Engine) initLogger(verbose bool) error {
 
 func (e *Engine) InitDatabase(idleConns, openConns int) error {
 	connStr := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?allowAllFiles=true&charset=utf8&parseTime=true&loc=%s",
+		"%s:%s@tcp(%s:%s)/%s?allowAllFiles=true&charset=utf8&parseTime=true",
 		e.Config["db.username"],
 		e.Config["db.password"],
 		e.Config["db.hostname"],
 		e.Config["db.port"],
 		e.Config["db.database"],
-		"Asia%2FSeoul")
-	log.Debugf("[db] hostname=%s, username=%s, port=%s, database=%s", e.Config["db.hostname"], e.Config["db.username"], e.Config["db.port"], e.Config["db.database"])
+	)
+	log.WithFields(log.Fields{
+		"hostname":     e.Config["db.hostname"],
+		"username":     e.Config["db.username"],
+		"port":         e.Config["db.port"],
+		"database":     e.Config["db.database"],
+		"MaxIdleConns": idleConns,
+		"MaxOpenConns": openConns,
+	}).Debug("database")
+	//log.Debugf("[db] hostname=%s, username=%s, port=%s, database=%s", , e.Config["db."], e.Config["db."], e.Config["db."])
+	//log.Debugf("[db] hostname=%s, username=%s, port=%s, database=%s", e.Config["db.hostname"], e.Config["db.username"], e.Config["db.port"], e.Config["db.database"])
 
 	db, _ := sql.Open("mysql", connStr)
 	err := db.Ping()

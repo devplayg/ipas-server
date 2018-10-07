@@ -179,7 +179,6 @@ func (c *eventStatsCalculator) produceEventStats() error {
 			}
 		}
 	}
-
 	return nil
 }
 
