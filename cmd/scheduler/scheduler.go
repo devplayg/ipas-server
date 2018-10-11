@@ -42,7 +42,7 @@ func main() {
 	if *setConfig {
 		secureconfig.SetConfig(
 			engine.ConfigPath,
-			"db.hostname, db.port, db.username, db.password, db.database",
+			"db.hostname, db.port, db.username, db.password, db.database, timezone",
 			ipasserver.GetEncryptionKey(),
 		)
 		return
@@ -52,7 +52,6 @@ func main() {
 	if err := engine.Start(); err != nil {
 		log.Fatal(err)
 	}
-	log.Debug(engine.Config)
 
 	// 데이터베이스 연결
 	if err := engine.InitDatabase(1, 1); err != nil {

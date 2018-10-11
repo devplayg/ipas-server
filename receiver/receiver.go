@@ -51,8 +51,11 @@ func createStatusObj(req *http.Request) *objs.Event {
 	m["snr"] = req.Form.Get("snr")
 	m["ctn"] = req.Form.Get("ctn")
 	m["sesid"] = req.Form.Get("sesid")
+	m["tz"] = req.Form.Get("tz")
 
+	//log.Debug(req.Form)
 	event.Parsed = m
+
 	return event
 }
 
@@ -67,12 +70,12 @@ func NewEventReceiver(router *httprouter.Router) *EventReceiver {
 }
 
 func (e *EventReceiver) Start(c chan<- *objs.Event) error {
-	e.router.POST("/event", func(resp http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	e.router.POST("/event", func(res http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		event := createEventObj(req)
 		c <- event
 	})
 
-	e.router.GET("/event", func(resp http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	e.router.GET("/event", func(res http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		event := createEventObj(req)
 		c <- event
 	})
@@ -100,6 +103,9 @@ func createEventObj(req *http.Request) *objs.Event {
 	m["type"] = req.Form.Get("type")
 	m["dist"] = req.Form.Get("dist")
 	m["sesid"] = req.Form.Get("sesid")
+	m["tz"] = req.Form.Get("tz")
+
+	//log.Debug(req.Form)
 	event.Parsed = m
 
 	return event
