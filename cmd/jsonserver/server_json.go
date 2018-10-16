@@ -11,17 +11,23 @@ import (
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	printHeader(w)
 	html := `
-<div class="row">
-	<div class="col-sm-4" style="padding: 20px;">
+<div class="row" style="padding: 20px;">
+	<div class="col-sm-6" >
+		<div class="alert alert-secondary" role="alert">
+            Request (JSON type)
+		</div>
 		<form id="form-json">
 			<div class="form-group">
     			<textarea class="form-control" name="data" rows="5">{"key":"valid_value"}</textarea>
   			</div>
-			<button id="btn-send" class="btn btn-primary">Send</button>
+			<button id="btn-send" class="btn btn-primary">Request</button>
 		</form>
 	</div>
-	<div class="col-sm-4" style="padding: 20px; border: 1px dashed #acacac">
-		<pre class="result"></pre>
+	<div class="col-sm-6">
+		<div class="alert alert-primary" role="alert">
+  			Output
+		</div>
+		<pre class="result" style="padding: 5px; border: 1px dashed #acacac"></pre>
 	</div>
 </div>
 
@@ -53,7 +59,7 @@ func main() {
 	router.GET("/", Index)
 	router.POST("/event", ParseData)
 
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(":8000", router))
 }
 
 func printHeader(w http.ResponseWriter) {
