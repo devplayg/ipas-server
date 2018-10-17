@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"net/http/httputil"
 )
 
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -40,15 +41,17 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 func ParseData(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
-	fmt.Printf("method=%s\n", req.Method)
-	fmt.Printf("remoteaddr=%s\n", req.RemoteAddr)
-	fmt.Printf("url=%s\n", req.URL)
-	//spew.Dump(r.Body)
-	//fmt.Fprintf(w, "hello, %s!\n", ps.ByName("name"))
+	// Capture client request
+	requestDump, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		fmt.Println(w, err.Error())
+	} else {
+		fmt.Println(string(requestDump))
+	}
 
 	decoder := json.NewDecoder(req.Body)
 	jsonMap := make(map[string]interface{})
-	err := decoder.Decode(&jsonMap)
+	err = decoder.Decode(&jsonMap)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
 	}
