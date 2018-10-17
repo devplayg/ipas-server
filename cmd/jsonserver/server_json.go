@@ -39,6 +39,10 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func ParseData(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+
+	fmt.Printf("method=%s\n", req.Method)
+	fmt.Printf("remoteaddr=%s\n", req.RemoteAddr)
+	fmt.Printf("url=%s\n", req.URL)
 	//spew.Dump(r.Body)
 	//fmt.Fprintf(w, "hello, %s!\n", ps.ByName("name"))
 
