@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/devplayg/ipas-server"
 	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
+	"os"
 )
 
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -55,11 +57,17 @@ func ParseData(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 }
 
 func main() {
+	var (
+		port = ipasserver.CmdFlags.String("p", ":80", "HTTP Port")
+	)
+	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
+	ipasserver.CmdFlags.Parse(os.Args[1:])
+
 	router := httprouter.New()
 	router.GET("/", Index)
 	router.POST("/event", ParseData)
 
-	log.Fatal(http.ListenAndServe(":8000", router))
+	log.Fatal(http.ListenAndServe(*port, router))
 }
 
 func printHeader(w http.ResponseWriter) {
