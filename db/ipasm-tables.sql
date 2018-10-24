@@ -31,7 +31,7 @@ USE `ipasm`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `adt_audit` (
   `audit_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `date` datetime NOT NULL DEFAULT utc_timestamp(),
+  `date` datetime NOT NULL DEFAULT current_timestamp(),
   `member_id` int(11) NOT NULL,
   `category` varchar(32) NOT NULL,
   `ip` int(10) unsigned NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE `adt_audit` (
 CREATE TABLE `adt_audit_detail` (
   `audit_id` int(10) unsigned NOT NULL,
   `detail` mediumtext NOT NULL,
-  `created` datetime NOT NULL DEFAULT utc_timestamp(),
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
   KEY `ix_audit_id` (`audit_id`),
   KEY `ix_created` (`created`),
   CONSTRAINT `fk_adt_audit_detail_audit_id` FOREIGN KEY (`audit_id`) REFERENCES `adt_audit` (`audit_id`) ON DELETE CASCADE ON UPDATE CASCADE
@@ -73,8 +73,8 @@ CREATE TABLE `ast_asset` (
   `type2` int(10) unsigned NOT NULL DEFAULT 0,
   `icon` varchar(256) NOT NULL DEFAULT '',
   `seq` int(10) unsigned NOT NULL DEFAULT 0,
-  `created` datetime NOT NULL DEFAULT utc_timestamp(),
-  `updated` datetime NOT NULL DEFAULT utc_timestamp() ON UPDATE utc_timestamp(),
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`asset_id`),
   KEY `ix_ast_asset_parentId` (`parent_id`),
   KEY `ix_ast_asset_class` (`class`),
@@ -116,8 +116,8 @@ CREATE TABLE `ast_ipas` (
   `usim` varchar(32) NOT NULL DEFAULT '',
   `name` varchar(32) NOT NULL DEFAULT '',
   `ip` int(10) unsigned NOT NULL DEFAULT 0,
-  `created` datetime NOT NULL DEFAULT utc_timestamp(),
-  `updated` datetime NOT NULL DEFAULT utc_timestamp(),
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`org_id`,`equip_id`),
   KEY `ix_ast_ipas_equiptype` (`equip_type`),
   KEY `ix_ast_ipas_orgid` (`org_id`),
@@ -177,8 +177,8 @@ CREATE TABLE `ast_server` (
   `s1` varchar(128) NOT NULL DEFAULT '',
   `s2` varchar(128) NOT NULL DEFAULT '',
   `enabled` tinyint(3) unsigned NOT NULL DEFAULT 1,
-  `created` datetime NOT NULL DEFAULT utc_timestamp(),
-  `updated` datetime NOT NULL DEFAULT utc_timestamp(),
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`server_id`),
   UNIQUE KEY `category1` (`category1`,`category2`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -205,7 +205,7 @@ CREATE TABLE `log_ipas` (
   `v2v_dist` int(11) NOT NULL COMMENT 'cm',
   `shock_threshold` int(11) NOT NULL,
   `speed_threshold` int(11) NOT NULL,
-  `rdate` datetime NOT NULL DEFAULT utc_timestamp(),
+  `rdate` datetime NOT NULL DEFAULT current_timestamp(),
   KEY `ix_log_ipas_date` (`date`),
   KEY `ix_log_ipas_date_equip_id` (`date`,`equip_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -232,7 +232,7 @@ CREATE TABLE `log_ipas_event` (
   `usim` varchar(32) NOT NULL DEFAULT '',
   `distance` int(11) NOT NULL DEFAULT 0,
   `ip` int(10) unsigned NOT NULL DEFAULT 0,
-  `recv_date` datetime NOT NULL DEFAULT utc_timestamp(),
+  `recv_date` datetime NOT NULL DEFAULT current_timestamp(),
   KEY `ix_log_ipas_event_date` (`date`),
   KEY `ix_log_ipas_event_sessionid` (`session_id`),
   KEY `ix_log_ipas_event_date_orgid` (`date`,`org_id`),
@@ -260,7 +260,7 @@ CREATE TABLE `log_ipas_status` (
   `snr` int(11) NOT NULL DEFAULT 0,
   `usim` varchar(32) NOT NULL DEFAULT '',
   `ip` int(10) unsigned NOT NULL DEFAULT 0,
-  `recv_date` datetime NOT NULL DEFAULT utc_timestamp(),
+  `recv_date` datetime NOT NULL DEFAULT current_timestamp(),
   KEY `ix_log_ipas_status_date` (`date`),
   KEY `ix_log_ipas_status_sessionid` (`session_id`),
   KEY `ix_log_ipas_status_date_orgid` (`date`,`org_id`),
@@ -319,7 +319,7 @@ CREATE TABLE `log_message_temp` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `log_sample` (
   `date` datetime NOT NULL,
-  `recv_date` datetime NOT NULL DEFAULT utc_timestamp(),
+  `recv_date` datetime NOT NULL DEFAULT current_timestamp(),
   `org` int(11) NOT NULL,
   `sub_org` int(11) NOT NULL,
   `guid` varchar(34) NOT NULL,
@@ -338,7 +338,7 @@ CREATE TABLE `mbr_allowed_ip` (
   `member_id` int(11) NOT NULL,
   `ip` int(10) unsigned NOT NULL,
   `cidr` int(11) NOT NULL,
-  `created` datetime NOT NULL DEFAULT utc_timestamp(),
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`member_id`,`ip`,`cidr`),
   CONSTRAINT `fk_mbr_allowed_ip_member_id` FOREIGN KEY (`member_id`) REFERENCES `mbr_member` (`member_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='4.0.1506.30401';
@@ -369,8 +369,8 @@ CREATE TABLE `mbr_config` (
   `keyword` varchar(64) NOT NULL,
   `value_s` varchar(128) NOT NULL,
   `value_n` int(11) NOT NULL,
-  `created` datetime NOT NULL DEFAULT utc_timestamp(),
-  `updated` datetime NOT NULL DEFAULT utc_timestamp() ON UPDATE utc_timestamp(),
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   KEY `ix_member_id` (`member_id`),
   KEY `ix_keyword` (`keyword`),
   CONSTRAINT `fk_mbr_config_member_id` FOREIGN KEY (`member_id`) REFERENCES `mbr_member` (`member_id`) ON DELETE CASCADE ON UPDATE CASCADE
@@ -408,8 +408,8 @@ CREATE TABLE `mbr_member` (
   `last_failed_login` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `last_read_message` int(11) unsigned NOT NULL DEFAULT 0,
   `session_id` varchar(64) NOT NULL DEFAULT '',
-  `created` datetime NOT NULL DEFAULT utc_timestamp(),
-  `last_updated` datetime NOT NULL DEFAULT utc_timestamp() ON UPDATE utc_timestamp(),
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `last_updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`member_id`),
   UNIQUE KEY `username` (`username`),
   KEY `position` (`position`)
@@ -426,8 +426,8 @@ CREATE TABLE `mbr_password` (
   `member_id` int(11) NOT NULL,
   `password` varchar(64) NOT NULL,
   `salt` varchar(32) NOT NULL,
-  `created` datetime NOT NULL DEFAULT utc_timestamp(),
-  `updated` datetime NOT NULL DEFAULT utc_timestamp() ON UPDATE utc_timestamp(),
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`member_id`),
   CONSTRAINT `fk_mbr_password_member_id` FOREIGN KEY (`member_id`) REFERENCES `mbr_member` (`member_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -722,8 +722,8 @@ CREATE TABLE `sys_config` (
   `keyword` varchar(64) NOT NULL,
   `value_s` varchar(256) NOT NULL,
   `value_n` int(11) NOT NULL,
-  `created` datetime NOT NULL DEFAULT utc_timestamp(),
-  `updated` datetime NOT NULL DEFAULT utc_timestamp() ON UPDATE utc_timestamp(),
+  `created` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`section`,`keyword`),
   KEY `ix_section` (`section`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -738,4 +738,4 @@ CREATE TABLE `sys_config` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-09-30 18:53:35
+-- Dump completed on 2018-10-24  4:16:36
