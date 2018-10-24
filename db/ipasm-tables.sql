@@ -21,6 +21,8 @@
 
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `ipasm` /*!40100 DEFAULT CHARACTER SET utf8 */;
 -- mysqldump -u root --skip-add-drop-table -d -B  ipasm > ipasm-tables.sql
+-- my.cnf
+--  default-time-zone = +00:00
 USE `ipasm`;
 
 --
