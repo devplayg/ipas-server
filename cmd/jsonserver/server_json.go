@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"net/http/httputil"
+	"strconv"
 )
 
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -49,23 +50,34 @@ func ParseData(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		fmt.Println(string(requestDump))
 	}
 
-	decoder := json.NewDecoder(req.Body)
-	jsonMap := make(map[string]interface{})
-	err = decoder.Decode(&jsonMap)
-	if err != nil {
-		fmt.Fprintf(w, err.Error())
+	if req.Method == "POST" {
+		decoder := json.NewDecoder(req.Body)
+		jsonMap := make(map[string]interface{})
+		err = decoder.Decode(&jsonMap)
+		if err != nil {
+			fmt.Fprintf(w, err.Error())
+		}
+		jsonRes, err := json.MarshalIndent(jsonMap, "", "    ")
+		if err != nil {
+			fmt.Fprintf(w, err.Error())
+		} else {
+			fmt.Fprintf(w, string(jsonRes))
+		}
+
+	} else if req.Method == "GET" {
+		req.ParseForm()
+
+		for k, v := range req.Form {
+			fmt.Printf("%s => %s\n", k, v )
+			fmt.Fprintf(w, "%s => %s", k, v )
+		}
 	}
-	jsonRes, err := json.MarshalIndent(jsonMap, "", "    ")
-	if err != nil {
-		fmt.Fprintf(w, err.Error())
-	} else {
-		fmt.Fprintf(w, string(jsonRes))
-	}
+	fmt.Println("======================================================================================")
 }
 
 func main() {
 	var (
-		port = ipasserver.CmdFlags.String("p", ":80", "HTTP Port")
+		port = ipasserver.CmdFlags.Uint("p", 80, "HTTP Port")
 	)
 	ipasserver.CmdFlags.Usage = ipasserver.PrintHelp
 	ipasserver.CmdFlags.Parse(os.Args[1:])
@@ -73,8 +85,9 @@ func main() {
 	router := httprouter.New()
 	router.GET("/", Index)
 	router.POST("/event", ParseData)
+	router.GET("/event", ParseData)
 
-	log.Fatal(http.ListenAndServe(*port, router))
+	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(int(*port)), router))
 }
 
 func printHeader(w http.ResponseWriter) {
