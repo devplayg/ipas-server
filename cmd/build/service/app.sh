@@ -1,7 +1,7 @@
 #!/bin/sh
 
 mode=$1
-dir=/root/go/src/github.com/devplayg/ipas-server/cmd/build
+dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 addToService()
 {
